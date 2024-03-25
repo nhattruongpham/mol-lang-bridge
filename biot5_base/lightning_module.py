@@ -47,7 +47,7 @@ class BioT5Model(pl.LightningModule):
         generated_ids = self.model.generate(
             input_ids = input_ids,
             attention_mask = attention_mask,
-            max_length=256,
+            max_length=512,
             num_beams=3,
             repetition_penalty=2.5, 
             length_penalty=1.0, 
