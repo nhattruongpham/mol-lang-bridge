@@ -29,7 +29,9 @@ def main(args):
         callbacks=[ckpt_callback],
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
-        devices=args.num_devices
+        devices=args.num_devices,
+        precision='16', # 32 if has more vram
+        gradient_clip_val=10.0
     )
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)

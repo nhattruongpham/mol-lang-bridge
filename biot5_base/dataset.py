@@ -57,7 +57,9 @@ def get_dataloaders(tokenizer, batch_size=8, num_workers=4, split='train'):
         return DataLoader(
             Mol2TextDataset(
                 tokenizer=tokenizer,
-                split='train'
+                split='train',
+                input_max_length=512,
+                output_max_length=512
             ),
             batch_size=batch_size,
             num_workers=num_workers,
@@ -68,7 +70,9 @@ def get_dataloaders(tokenizer, batch_size=8, num_workers=4, split='train'):
         return DataLoader(
             Mol2TextDataset(
                 tokenizer=tokenizer,
-                split='validation'
+                split='validation',
+                input_max_length=512,
+                output_max_length=512
             ),
             batch_size=batch_size,
             num_workers=num_workers,
