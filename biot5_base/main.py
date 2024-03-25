@@ -13,7 +13,7 @@ def main(args):
     train_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
     val_dataloader = get_dataloaders(tokenizer, batch_size=1, num_workers=4, split='validation')
 
-    model = BioT5Model(args.pretrained_model_name_or_path)
+    model = BioT5Model(args, tokenizer, len(train_dataloader))
     model.to(device)
 
     ckpt_callback = ModelCheckpoint(
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained_model_name_or_path', type=str, default='QizhiPei/biot5-base')
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--num_devices', type=int, default=1)
+    parser.add_argument('--warmup_ratio', type=int, default=0.1)
     
     args = parser.parse_args()
     

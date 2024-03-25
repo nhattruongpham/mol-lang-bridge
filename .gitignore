@@ -1,3 +1,5 @@
+lightning_logs/
+*.tsv
 biot5_base/*.txt
 biot5_base/*.ipynb
 
