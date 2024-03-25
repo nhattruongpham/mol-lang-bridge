@@ -1,3 +1,6 @@
+biot5_base/*.txt
+biot5_base/*.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
