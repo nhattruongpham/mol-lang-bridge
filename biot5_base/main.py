@@ -18,11 +18,11 @@ def main(args):
 
     ckpt_callback = ModelCheckpoint(
         dirpath='ckpt/',
-        filename='best-model',
+        filename='ckpt_{eval_loss}',
         save_top_k=3,
         verbose=True,
-        monitor='val_loss',
-        mode='min',
+        monitor='eval_loss',
+        mode='min'
     )
 
     trainer = pl.Trainer(
@@ -50,5 +50,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     main(args)
-    
-    
