@@ -9,7 +9,7 @@ class Mol2TextDataset(Dataset):
                  input_max_length=256,
                  output_max_length=256):
         super().__init__()
-        self.dataset = load_dataset(dataset_name_or_path, split=split)
+        self.dataset = load_dataset(dataset_name_or_path, split=split, use_auth_token=True)
         self.tokenizer = tokenizer
         self.input_max_length = input_max_length
         self.output_max_length = output_max_length
