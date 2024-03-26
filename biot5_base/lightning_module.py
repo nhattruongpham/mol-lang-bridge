@@ -12,6 +12,9 @@ class BioT5Model(pl.LightningModule):
         self.data_len = data_len
         self.tokenizer = tokenizer
         self.evaluate_func = Mol2Text_translation()
+        
+    def resize_token_embeddings(self, len_embeddings):
+        self.model.resize_token_embeddings(len_embeddings)
     
     def forward(self, input_ids, attention_mask, labels=None):
         
@@ -46,28 +49,26 @@ class BioT5Model(pl.LightningModule):
         
         loss, logits = self(input_ids, attention_mask, labels)
         
-        # generated_ids = self.model.generate(
-        #     input_ids = input_ids,
-        #     attention_mask = attention_mask,
-        #     max_length=512,
-        #     num_beams=2,
-        #     top_k=20,
-        #     top_p=0.7,
-        #     repetition_penalty=2.5, 
-        #     length_penalty=1.0, 
-        #     early_stopping=True
-        # )
+        generated_ids = self.model.generate(
+            input_ids = input_ids,
+            attention_mask = attention_mask,
+            max_length=512,
+            num_beams=2,
+            repetition_penalty=2.5, 
+            length_penalty=1.0, 
+            early_stopping=True
+        )
         
-        # preds = [self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
-        # gts = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in labels]
+        preds = [self.tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
+        gts = [self.tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True) for t in labels]
         
         
         # # loss, logits = self(input_ids, attention_mask, labels)
         
-        # # self.log("val_loss", loss, prog_bar=True, logger=True)
+        # self.log("val_loss", loss, prog_bar=True, logger=True)
         
-        # evaluated_metrics = self.evaluate_func(preds, gts, batch['selfies'])
-        # self.log_dict(evaluated_metrics)
+        evaluated_metrics = self.evaluate_func(preds, gts, batch['selfies'])
+        self.log_dict(evaluated_metrics)
         
         self.log('eval_loss', loss)
         
