@@ -1,5 +1,5 @@
 selfies
 accelerate
-"huggingface_hub[cli]"
+huggingface_hub[cli]
 rdkit
 datasets
