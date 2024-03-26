@@ -45,8 +45,8 @@ def main(args):
 
     # Prepare dataset
     dataset = load_dataset("ndhieunguyen/LPM-24", use_auth_token=True)
-    train_data = dataset["train"]
-    val_data = dataset["validation"]
+    train_data = dataset["train"].filter(lambda sample: sample["selfies"] != "")
+    val_data = dataset["validation"].filter(lambda sample: sample["selfies"] != "")
     train_dataset = MyDataset(
         train_data, tokenizer, args.caption_max_length, args.selfies_max_length
     )
