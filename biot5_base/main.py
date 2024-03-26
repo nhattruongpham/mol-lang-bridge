@@ -10,10 +10,13 @@ from argparse import ArgumentParser
 def main(args):
     device = torch.device('cuda' if args.cuda else 'cpu')
     tokenizer = AutoTokenizer.from_pretrained(args.pretrained_model_name_or_path)
+    tokenizer.add_tokens(['α', 'β', 'γ']) # Add greek symbol
+    
     train_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
     val_dataloader = get_dataloaders(tokenizer, batch_size=1, num_workers=4, split='validation')
 
     model = BioT5Model(args, tokenizer, len(train_dataloader))
+    model.resize_token_embeddings(len(tokenizer)) ## Resize due to adding new tokens
     model.to(device)
 
     ckpt_callback = ModelCheckpoint(
@@ -30,7 +33,7 @@ def main(args):
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
         devices=args.num_devices,
-        precision='16', # 32 if has more vram
+        precision=args.precision, # 32 if has more vram
         gradient_clip_val=10.0
     )
 
@@ -46,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--num_devices', type=int, default=1)
     parser.add_argument('--warmup_ratio', type=int, default=0.1)
+    parser.add_argument('--precision', type=str, default='32')
     
     args = parser.parse_args()
     
