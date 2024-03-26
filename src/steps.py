@@ -30,7 +30,7 @@ def train(model, dataloader, tokenizer, optimizer, device="cuda"):
         total_loss += loss.detach().float().item()
 
         pbar.set_description(
-            f"{i}/{len(dataloader)} ({round(i/len(dataloader)*100,2)}%) - {loss}"
+            f"{i+1}/{len(dataloader)} ({round(i/len(dataloader)*100,2)}%) - {loss}"
         )
 
         loss.backward()
@@ -47,7 +47,7 @@ def validate(model, dataloader, tokenizer, device="cuda", prefix="train"):
     generation_config.max_length = 512
     generation_config.num_beams = 1
     with torch.no_grad():
-        for data in dataloader:
+        for data in tqdm(dataloader):
             y = data["selfies_ids"].to(device, dtype=torch.long)
             ids = data["caption_ids"].to(device, dtype=torch.long)
             mask = data["caption_mask"].to(device, dtype=torch.long)

@@ -84,8 +84,10 @@ def main(args):
 
     for epoch in range(args.epochs):
         total_loss = train(model, train_dataloader, tokenizer, optimizer)
+        print(f"Finish training epoch {epoch}, evaluating...")
         train_result = validate(model, train_dataloader, tokenizer, device)
         val_result = validate(model, val_dataloader, tokenizer, device, prefix="val")
+        print(f"Finish evaluating epoch {epoch}")
 
         train_dict = {}
         train_dict["train_loss"] = total_loss
