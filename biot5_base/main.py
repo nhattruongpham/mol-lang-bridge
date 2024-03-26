@@ -32,12 +32,13 @@ def main(args):
     wandb_logger = WandbLogger(log_model=False)
 
     trainer = pl.Trainer(
-        callbacks=[ckpt_callback, wandb_logger],
+        callbacks=[ckpt_callback],
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
         devices=args.num_devices,
         precision=args.precision, # 32 if has more vram
-        gradient_clip_val=10.0
+        gradient_clip_val=10.0,
+        logger=[wandb_logger]
     )
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
