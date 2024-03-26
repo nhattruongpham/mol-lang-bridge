@@ -30,7 +30,7 @@ def train(model, dataloader, tokenizer, optimizer, device="cuda"):
         total_loss += loss.detach().float().item()
 
         pbar.set_description(
-            f"{i}/{len(dataloader)} ({round(i/len(dataloader)*100,2)}) - {loss}"
+            f"{i}/{len(dataloader)} ({round(i/len(dataloader)*100,2)}%) - {loss}"
         )
 
         loss.backward()
