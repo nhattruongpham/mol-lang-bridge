@@ -47,8 +47,12 @@ def main(args):
     dataset = load_dataset("ndhieunguyen/LPM-24", use_auth_token=True)
     train_data = dataset["train"]
     val_data = dataset["validation"]
-    train_dataset = MyDataset(train_data, tokenizer)
-    val_dataset = MyDataset(val_data, tokenizer)
+    train_dataset = MyDataset(
+        train_data, tokenizer, args.caption_max_length, args.selfies_max_length
+    )
+    val_dataset = MyDataset(
+        val_data, tokenizer, args.caption_max_length, args.selfies_max_length
+    )
     train_dataloader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4
     )
@@ -104,6 +108,8 @@ if __name__ == "__main__":
     parser.add_argument("--total_steps", type=int, default=65536)
     parser.add_argument("--final_cosine", type=int, default=1e-5)
     parser.add_argument("--lr", type=int, default=2e-2)
+    parser.add_argument("--caption_max_length", type=int, default=512)
+    parser.add_argument("--selfies_max_length", type=int, default=512)
     parser.add_argument(
         "--pretrained_name",
         type=str,
