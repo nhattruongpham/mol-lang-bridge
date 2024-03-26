@@ -54,10 +54,10 @@ def main(args):
         val_data, tokenizer, args.caption_max_length, args.selfies_max_length
     )
     train_dataloader = DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2
     )
     val_dataloader = DataLoader(
-        val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
+        val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2
     )
 
     # Prepare optimizer

@@ -29,12 +29,14 @@ def train(model, dataloader, tokenizer, optimizer, device="cuda"):
         loss = outputs.loss
         total_loss += loss.detach().float().item()
 
-        pbar.set_description(f"{i}/{len(dataloader)} - {loss}")
+        pbar.set_description(
+            f"{i}/{len(dataloader)} ({round(i/len(dataloader)*100,2)}) - {loss}"
+        )
 
         loss.backward()
         optimizer.step()
 
-    return total_loss
+    return total_loss / len(dataloader)
 
 
 def validate(model, dataloader, tokenizer, device="cuda", prefix="train"):
