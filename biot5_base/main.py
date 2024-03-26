@@ -5,6 +5,7 @@ import lightning as pl
 from lightning_module import BioT5Model
 from lightning.pytorch.callbacks import ModelCheckpoint
 from argparse import ArgumentParser
+from lightning.pytorch.loggers import WandbLogger
 
 
 def main(args):
@@ -27,9 +28,11 @@ def main(args):
         monitor='eval_loss',
         mode='min'
     )
+    
+    wandb_logger = WandbLogger(log_model=False)
 
     trainer = pl.Trainer(
-        callbacks=[ckpt_callback],
+        callbacks=[ckpt_callback, wandb_logger],
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
         devices=args.num_devices,
