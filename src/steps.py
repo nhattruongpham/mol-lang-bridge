@@ -57,25 +57,33 @@ def validate(model, dataloader, tokenizer, device="cuda", prefix="train"):
                 attention_mask=mask,
                 generation_config=generation_config,
             )
-            preds = [
-                sf.decoder(
-                    tokenizer.decode(
-                        g, skip_special_tokens=True, clean_up_tokenization_spaces=True
-                    ).replace(" ", "")
-                )
-                for g in generated_ids
-            ]
-            target = [
-                sf.decoder(
-                    tokenizer.decode(
-                        t, skip_special_tokens=True, clean_up_tokenization_spaces=True
-                    ).replace(" ", "")
-                )
-                for t in y
-            ]
 
-            predictions.extend(preds)
-            actuals.extend(target)
+            try:
+                preds = [
+                    sf.decoder(
+                        tokenizer.decode(
+                            g,
+                            skip_special_tokens=True,
+                            clean_up_tokenization_spaces=True,
+                        ).replace(" ", "")
+                    )
+                    for g in generated_ids
+                ]
+                target = [
+                    sf.decoder(
+                        tokenizer.decode(
+                            t,
+                            skip_special_tokens=True,
+                            clean_up_tokenization_spaces=True,
+                        ).replace(" ", "")
+                    )
+                    for t in y
+                ]
+
+                predictions.extend(preds)
+                actuals.extend(target)
+            except:
+                continue
 
     references, hypotheses = [], []
     for pred, actual in zip(predictions, actuals):
