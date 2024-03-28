@@ -85,12 +85,12 @@ def main(args):
     for epoch in range(args.epochs):
         total_loss = train(model, train_dataloader, tokenizer, optimizer)
         print(f"Finish training epoch {epoch}, evaluating...")
-        val_result = validate(model, val_dataloader, tokenizer, device, prefix="val")
+        # val_result = validate(model, val_dataloader, tokenizer, device, prefix="val")
         print(f"Finish evaluating epoch {epoch}")
 
         train_dict = {}
         train_dict["train_loss"] = total_loss
-        train_dict.update(val_result)
+        # train_dict.update(val_result)
 
         wandb.log(train_dict)
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", type=int, default=1000)
     parser.add_argument("--total_steps", type=int, default=65536)
     parser.add_argument("--final_cosine", type=int, default=1e-5)
-    parser.add_argument("--lr", type=int, default=2e-2)
+    parser.add_argument("--lr", type=int, default=3e-5)
     parser.add_argument("--caption_max_length", type=int, default=512)
     parser.add_argument("--selfies_max_length", type=int, default=512)
     parser.add_argument(
