@@ -1,13 +1,19 @@
 import lightning as pl
-from transformers import T5ForConditionalGeneration
+from transformers import T5ForConditionalGeneration, AutoConfig
 from torch import optim
 import math
 
 class BioT5Model(pl.LightningModule):
-    def __init__(self, config, tokenizer):
+    def __init__(self, config, tokenizer, use_pretrained=True):
         super().__init__()
         self.cfg = config
-        self.model = T5ForConditionalGeneration.from_pretrained(config.pretrained_model_name_or_path)
+        
+        if use_pretrained:
+            self.model = T5ForConditionalGeneration.from_pretrained(config.pretrained_model_name_or_path)
+        else:
+            model_config = AutoConfig.from_pretrained(config.pretrained_model_name_or_path)
+            self.model = T5ForConditionalGeneration(model_config)
+            
         self.tokenizer = tokenizer
         
     def resize_token_embeddings(self, len_embeddings):

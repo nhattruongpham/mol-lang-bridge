@@ -1,6 +1,5 @@
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
-from transformers import AutoTokenizer
 
 class Mol2TextDataset(Dataset):
     def __init__(self, tokenizer, 
