@@ -22,7 +22,7 @@ class Mol2TextDataset(Dataset):
         sample = self.dataset[index]
         
         input = self.tokenizer(
-            sample['selfies'],
+            "<bom>"+sample['selfies']+"<eom>",
             add_special_tokens=True,
             max_length=self.input_max_length,
             padding = 'max_length',
@@ -32,7 +32,7 @@ class Mol2TextDataset(Dataset):
         )
         
         output = self.tokenizer(
-            sample['caption'],
+            "<boc>"+sample['caption']+"<eoc>",
             add_special_tokens=True,
             max_length=self.output_max_length,
             padding = 'max_length',

@@ -11,12 +11,14 @@ from lightning.pytorch.loggers import WandbLogger
 def main(args):
     device = torch.device('cuda' if args.cuda else 'cpu')
     tokenizer = AutoTokenizer.from_pretrained(args.pretrained_model_name_or_path)
-    tokenizer.add_tokens(['α', 'β', 'γ']) # Add greek symbol
+    tokenizer.add_tokens(['α', 'β', 'γ', '<soc>', '<eoc>']) # Add greek symbol, <soc> is start_of_caption
     
     train_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
-    val_dataloader = get_dataloaders(tokenizer, batch_size=1, num_workers=4, split='validation')
+    val_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
+    
+    args.train_data_len = len(train_dataloader)
 
-    model = BioT5Model(args, tokenizer, len(train_dataloader))
+    model = BioT5Model(args, tokenizer=tokenizer)
     model.resize_token_embeddings(len(tokenizer)) ## Resize due to adding new tokens
     model.to(device)
 

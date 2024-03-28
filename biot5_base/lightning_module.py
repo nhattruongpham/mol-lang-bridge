@@ -2,22 +2,18 @@ import lightning as pl
 from transformers import T5ForConditionalGeneration
 from torch import optim
 import math
-from translation_metrics import Mol2Text_translation
 
 class BioT5Model(pl.LightningModule):
-    def __init__(self, config, tokenizer, data_len):
+    def __init__(self, config, tokenizer):
         super().__init__()
         self.cfg = config
         self.model = T5ForConditionalGeneration.from_pretrained(config.pretrained_model_name_or_path)
-        self.data_len = data_len
         self.tokenizer = tokenizer
-        self.evaluate_func = Mol2Text_translation()
         
     def resize_token_embeddings(self, len_embeddings):
         self.model.resize_token_embeddings(len_embeddings)
     
     def forward(self, input_ids, attention_mask, labels=None):
-        
         decoder_input_ids = labels[:, :-1].contiguous()
         decoder_target_ids = labels[:, 1:].clone().detach()
         decoder_target_ids[labels[:, 1:] == self.tokenizer.pad_token_id] = -100
@@ -77,7 +73,7 @@ class BioT5Model(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=3e-5)
         
-        max_iter = self.cfg.epochs * self.data_len
+        max_iter = self.cfg.epochs * self.cfg.train_data_len
         warmup_steps = int(max_iter * self.cfg.warmup_ratio)
         scheduler = {
             "scheduler": self.cosine_scheduler(optimizer, max_iter, warmup_steps),
@@ -85,6 +81,26 @@ class BioT5Model(pl.LightningModule):
             "interval": "step",
         }
         return [optimizer], [scheduler]
+    
+    def generate(self, input_selfies):
+        generation_config = self.model.generation_config
+        generation_config.max_length = 512
+        generation_config.num_beams = 1
+        decoder_start_token_id = self.tokenizer.decode('<soc>')[0]
+        
+        inputs = self.tokenizer(
+            input_selfies,
+            return_tensors='pt'
+        )
+        
+        outputs = self.model.generate(
+            input_ids = inputs['input_ids'],
+            decoder_start_token_id=decoder_start_token_id,
+            generation_config=generation_config
+        )
+        
+        return [self.tokenizer.decode(o, skip_special_tokens=True) for o in outputs]
+        
     
     @staticmethod
     def cosine_scheduler(optimizer, training_steps, warmup_steps):
