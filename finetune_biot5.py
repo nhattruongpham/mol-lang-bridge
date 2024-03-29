@@ -12,7 +12,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from accelerate import Accelerator
 from argparse import ArgumentParser
-from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 import glob
 
 from src.dataset import MyDataset
@@ -29,6 +28,7 @@ def main(args):
 
     # set device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    accelerator = Accelerator(cpu=device == "cpu")
     print(f"Using device: {device}")
 
     # Load pretrained model and tokenizer
@@ -46,19 +46,19 @@ def main(args):
     # Prepare dataset
     dataset = load_dataset("ndhieunguyen/LPM-24", use_auth_token=True)
     train_data = dataset["train"].filter(lambda sample: sample["selfies"] != "")
-    val_data = dataset["validation"].filter(lambda sample: sample["selfies"] != "")
+    # val_data = dataset["validation"].filter(lambda sample: sample["selfies"] != "")
     train_dataset = MyDataset(
         train_data, tokenizer, args.caption_max_length, args.selfies_max_length
     )
-    val_dataset = MyDataset(
-        val_data, tokenizer, args.caption_max_length, args.selfies_max_length
-    )
+    # val_dataset = MyDataset(
+    #     val_data, tokenizer, args.caption_max_length, args.selfies_max_length
+    # )
     train_dataloader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2
     )
-    val_dataloader = DataLoader(
-        val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2
-    )
+    # val_dataloader = DataLoader(
+    #     val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2
+    # )
 
     # Prepare optimizer
     no_decay = ["bias", "LayerNorm", "layernorm", "layer_norm", "ln"]
@@ -81,6 +81,10 @@ def main(args):
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.lr)
+
+    model, tokenizer, optimizer, train_dataloader = accelerator.prepare(
+        model, tokenizer, optimizer, train_dataloader
+    )
 
     for epoch in range(args.epochs):
         total_loss = train(model, train_dataloader, tokenizer, optimizer)
@@ -107,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup_steps", type=int, default=1000)
     parser.add_argument("--total_steps", type=int, default=65536)
     parser.add_argument("--final_cosine", type=int, default=1e-5)
-    parser.add_argument("--lr", type=int, default=3e-5)
+    parser.add_argument("--lr", type=int, default=5e-4)
     parser.add_argument("--caption_max_length", type=int, default=512)
     parser.add_argument("--selfies_max_length", type=int, default=512)
     parser.add_argument(
