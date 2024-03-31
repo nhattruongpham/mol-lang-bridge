@@ -1,7 +1,9 @@
+my_dataset/
 lightning_logs/
 *.tsv
 biot5_base/*.txt
 biot5_base/*.ipynb
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
