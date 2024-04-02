@@ -17,7 +17,7 @@ from improved_diffusion.train_util import TrainLoop
 from transformers import set_seed
 import torch.distributed as dist
 import wandb
-from mytokenizers import regexTokenizer
+from mytokenizers import get_tokenizer
 from mydatasets import get_dataloader, ChEBIdataset
 import warnings
 import torch.multiprocessing as mp
@@ -37,8 +37,7 @@ def main_worker(rank, world_size):
         print(wandb.config)
 
     dist_util.setup_dist(rank, world_size)
-    print("creating model and diffusion...")
-    smtokenizer = regexTokenizer(max_len=256)
+    smtokenizer = get_tokenizer()
     model = TransformerNetModel2(
         in_channels=args.model_in_channels,  # 3, DEBUG**
         model_channels=args.model_model_channels,
