@@ -1,7 +1,3 @@
-"""
-Train a diffusion model on images.
-"""
-
 import argparse
 import os
 from improved_diffusion import gaussian_diffusion as gd
@@ -39,7 +35,7 @@ def main_worker(rank, world_size):
 
     dist_util.setup_dist(rank, world_size)
     smtokenizer = get_tokenizer()
-    model = TransformerNetModel2(
+    model = TransformerNetModel(
         in_channels=args.model_in_channels,  # 3, DEBUG**
         model_channels=args.model_model_channels,
         dropout=args.model_dropout,
