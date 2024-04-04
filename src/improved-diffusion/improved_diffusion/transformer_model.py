@@ -2,7 +2,6 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from transformers import AutoConfig, T5EncoderModel
 
 from .nn import SiLU, linear, timestep_embedding
