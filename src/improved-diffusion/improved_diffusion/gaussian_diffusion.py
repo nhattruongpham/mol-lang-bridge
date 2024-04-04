@@ -5,7 +5,6 @@ https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0
 Docstrings have been added, as well as DDIM sampling and a new collection of beta schedules.
 """
 
-print("IN SMI_ORI")
 import enum
 import math
 
@@ -18,8 +17,6 @@ from .losses import (
     discretized_gaussian_log_likelihood,
     discretized_text_log_likelihood,
 )
-
-print("0807checkpoint in Diffusion LM REGEX AUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
@@ -1430,7 +1427,7 @@ class GaussianDiffusion:
             raise NotImplementedError(self.model_mean_type)
         return {"pred_xprev": pred_prev, "pred_xstart": pred_xstart}
 
-    def training_losses_e2e(self, model, micro, t, model_kwargs=None, noise=None):
+    def training_losses_e2e(self, model, micro, t, noise=None):
         """
         Compute training losses for a single timestep.
 

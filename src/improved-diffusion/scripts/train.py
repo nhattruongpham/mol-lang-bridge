@@ -8,6 +8,7 @@ from improved_diffusion import gaussian_diffusion as gd
 from improved_diffusion.respace import SpacedDiffusion
 from improved_diffusion import dist_util
 from improved_diffusion.transformer_model2 import TransformerNetModel2
+from improved_diffusion.transformer_model import TransformerNetModel
 from improved_diffusion.resample import create_named_schedule_sampler
 from improved_diffusion.script_util import (
     model_and_diffusion_defaults,
@@ -29,12 +30,12 @@ def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(args.seed)
 
-    if rank == 0:
-        wandb.init(
-            project="DiffusionLMRegexAug",
-            config=args.__dict__,
-        )
-        print(wandb.config)
+    # if rank == 0:
+    #     wandb.init(
+    #         project="DiffusionLMRegexAug",
+    #         config=args.__dict__,
+    #     )
+    #     print(wandb.config)
 
     dist_util.setup_dist(rank, world_size)
     smtokenizer = get_tokenizer()
@@ -44,9 +45,7 @@ def main_worker(rank, world_size):
         dropout=args.model_dropout,
         use_checkpoint=False,
         config_name="bert-base-uncased",
-        training_mode="e2e",
         vocab_size=len(smtokenizer),
-        experiment_mode="lm",
         logits_mode=1,
         hidden_size=args.model_hidden_size,
         num_attention_heads=args.model_num_attention_heads,
