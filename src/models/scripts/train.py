@@ -1,21 +1,19 @@
 import argparse
 import os
-from improved_diffusion import gaussian_diffusion as gd
-from improved_diffusion.respace import SpacedDiffusion
-from improved_diffusion import dist_util
-from improved_diffusion.transformer_model2 import TransformerNetModel2
-from improved_diffusion.transformer_model import TransformerNetModel
-from improved_diffusion.resample import create_named_schedule_sampler
-from improved_diffusion.script_util import (
-    model_and_diffusion_defaults,
-    add_dict_to_argparser,
-)
-from improved_diffusion.train_util import TrainLoop
+from ..improved_diffusion import gaussian_diffusion as gd
+from src.models.improved_diffusion import gaussian_diffusion as gd
+from src.models.improved_diffusion.respace import SpacedDiffusion
+from src.models.improved_diffusion import dist_util
+from src.models.improved_diffusion.transformer_model import TransformerNetModel
+from src.models.improved_diffusion.resample import create_named_schedule_sampler
+from src.models.improved_diffusion.script_util import model_and_diffusion_defaults
+from src.models.improved_diffusion.script_util import add_dict_to_argparser
+from src.models.improved_diffusion.train_util import TrainLoop
 from transformers import set_seed
 import torch.distributed as dist
 import wandb
-from mytokenizers import get_tokenizer
-from mydatasets import get_dataloader, ChEBIdataset
+from src.models.scripts.mytokenizers import get_tokenizer
+from src.models.scripts.mydatasets import get_dataloader, ChEBIdataset
 import warnings
 import torch.multiprocessing as mp
 

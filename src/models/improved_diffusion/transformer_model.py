@@ -29,6 +29,7 @@ class TransformerNetModel(nn.Module):
         config.num_attention_heads = num_attention_heads
         config.num_hidden_layers = num_hidden_layers
         config.max_position_embeddings = 512
+        config.layer_norm_eps = 1e-12
 
         self.hidden_size = hidden_size
         self.mask = mask

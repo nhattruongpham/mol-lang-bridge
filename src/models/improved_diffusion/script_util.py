@@ -4,7 +4,7 @@ import inspect
 from . import gaussian_diffusion as gd
 from .respace import SpacedDiffusion, space_timesteps
 from .unet import SuperResModel, UNetModel
-from .transformer_model2 import  TransformerNetModel2
+
 NUM_CLASSES = 1000
 
 
@@ -32,13 +32,13 @@ def model_and_diffusion_defaults():
         rescale_learned_sigmas=True,
         use_checkpoint=False,
         use_scale_shift_norm=True,
-        model_arch='trans-unet',
+        model_arch="trans-unet",
         in_channel=8,
         out_channel=8,
-        training_mode='emb',
+        training_mode="emb",
         vocab_size=66,
-        config_name='bert-base-uncased',
-        experiment_mode='lm',
+        config_name="bert-base-uncased",
+        experiment_mode="lm",
         logits_mode=1,
     )
 
@@ -150,32 +150,28 @@ def create_gaussian_diffusion(
     steps=1000,
     learn_sigma=False,
     sigma_small=False,
-    noise_schedule="linear", #sqrt
+    noise_schedule="linear",  # sqrt
     use_kl=False,
-    predict_xstart=False, #True
-    rescale_timesteps=False, # True
-    rescale_learned_sigmas=False, #True
+    predict_xstart=False,  # True
+    rescale_timesteps=False,  # True
+    rescale_learned_sigmas=False,  # True
     timestep_respacing="",
-    model_arch='conv-unet', # transformer
-    training_mode='emb', # e2e
+    model_arch="conv-unet",  # transformer
+    training_mode="emb",  # e2e
 ):
     return SpacedDiffusion(
         use_timesteps=space_timesteps(2000, [2000]),
-        betas=gd.get_named_beta_schedule('sqrt', 2000),
-        model_mean_type=(
-             gd.ModelMeanType.START_X
-        ),
+        betas=gd.get_named_beta_schedule("sqrt", 2000),
+        model_mean_type=(gd.ModelMeanType.START_X),
         model_var_type=(
-            (
-                gd.ModelVarType.FIXED_LARGE
-            )
+            (gd.ModelVarType.FIXED_LARGE)
             if not learn_sigma
             else gd.ModelVarType.LEARNED_RANGE
         ),
         loss_type=gd.LossType.E2E_MSE,
         rescale_timesteps=True,
-        model_arch='transformer',
-        training_mode='e2e',
+        model_arch="transformer",
+        training_mode="e2e",
     )
 
 

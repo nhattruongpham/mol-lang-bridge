@@ -3,8 +3,7 @@ import functools
 import os
 
 import blobfile as bf
-import numpy as np
-import torch as th
+import torch
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
@@ -20,6 +19,7 @@ from .fp16_util import (
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
 import wandb
+
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
 # 20-21 within the first ~1K steps of training.
@@ -45,24 +45,23 @@ class TrainLoop:
         schedule_sampler=None,
         weight_decay=0.0,
         lr_anneal_steps=0,
-        checkpoint_path='',
-        gradient_clipping=-1.,
+        checkpoint_path="",
+        gradient_clipping=-1.0,
         eval_data=None,
         eval_interval=-1,
     ):
-        print("IN AUG trainutil")
-        rank = dist.get_rank()
+        # rank = dist.get_rank()
         world_size = dist.get_world_size()
-        print("initialing Trainer for",rank,'/',world_size)
-        self.rank = rank
+        # print("initialing Trainer for", rank, "/", world_size)
+        # self.rank = rank
         self.world_size = world_size
         self.diffusion = diffusion
         self.data = data
         self.eval_data = eval_data
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
-        self.lr = lr*world_size
-        print("ori lr:",lr,"new lr:",self.lr)
+        self.lr = lr * world_size
+        print("ori lr:", lr, "new lr:", self.lr)
         self.ema_rate = (
             [ema_rate]
             if isinstance(ema_rate, float)
@@ -83,22 +82,18 @@ class TrainLoop:
         self.resume_step = 0
         self.global_batch = self.batch_size * dist.get_world_size()
 
-        
         self.lg_loss_scale = INITIAL_LOG_LOSS_SCALE
-        self.sync_cuda = th.cuda.is_available()
-        print('checkpoint_path:{}'.format(checkpoint_path))
-        self.checkpoint_path = checkpoint_path # DEBUG **
-        
-        self.model = model.to(rank)
-       
+        self.sync_cuda = torch.cuda.is_available()
+        print("checkpoint_path:{}".format(checkpoint_path))
+        self.checkpoint_path = checkpoint_path  # DEBUG **
+
+        # self.model = model.to(rank)
+
         # self._load_and_sync_parameters()
         # if self.use_fp16:
         #     self._setup_fp16()
 
-        
-        
-
-        if th.cuda.is_available(): # DEBUG **
+        if torch.cuda.is_available():  # DEBUG **
             self.use_ddp = True
             self.ddp_model = DDP(
                 self.model,
@@ -110,7 +105,8 @@ class TrainLoop:
                 find_unused_parameters=False,
             )
         else:
-            assert False
+            # assert False
+            ddp_model = model.to("cpu")
             # if dist.get_world_size() > 1:
             #     logger.warn(
             #         "Distributed training requires CUDA. "
@@ -183,10 +179,10 @@ class TrainLoop:
         self.model.convert_to_fp16()
 
     def run_loop(self):
-        print('START LOOP FLAG')
+        print("START LOOP FLAG")
         while (
             not self.lr_anneal_steps
-            or self.step + self.resume_step < self.lr_anneal_steps//self.world_size
+            or self.step + self.resume_step < self.lr_anneal_steps // self.world_size
         ):
             batch = next(self.data)
             cond = None
@@ -197,13 +193,13 @@ class TrainLoop:
                 # dist.barrier()
                 pass
                 # print('loggggg')
-                #logger.dumpkvs()
+                # logger.dumpkvs()
             if self.eval_data is not None and self.step % self.eval_interval == 0:
                 # batch_eval, cond_eval = next(self.eval_data)
                 # self.forward_only(batch, cond)
-                print('eval on validation set')
-                pass# logger.dumpkvs()
-            if self.step % self.save_interval == 0 and self.step!=0:
+                print("eval on validation set")
+                pass  # logger.dumpkvs()
+            if self.step % self.save_interval == 0 and self.step != 0:
                 self.save()
                 # Run for a finite amount of time in integration tests.
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
@@ -222,16 +218,18 @@ class TrainLoop:
         self.log_step()
 
     def forward_only(self, batch, cond):
-        with th.no_grad():
+        with torch.no_grad():
             zero_grad(self.model_params)
             for i in range(0, batch.shape[0], self.microbatch):
-                micro = batch[i: i + self.microbatch].to(dist_util.dev())
+                micro = batch[i : i + self.microbatch].to(dist_util.dev())
                 micro_cond = {
-                    k: v[i: i + self.microbatch].to(dist_util.dev())
+                    k: v[i : i + self.microbatch].to(dist_util.dev())
                     for k, v in cond.items()
                 }
                 last_batch = (i + self.microbatch) >= batch.shape[0]
-                t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
+                t, weights = self.schedule_sampler.sample(
+                    micro.shape[0], dist_util.dev()
+                )
                 # print(micro_cond.keys())
                 compute_losses = functools.partial(
                     self.diffusion.training_losses,
@@ -248,9 +246,10 @@ class TrainLoop:
                         losses = compute_losses()
 
                 log_loss_dict(
-                    self.diffusion, t, {f"eval_{k}": v * weights for k, v in losses.items()}
+                    self.diffusion,
+                    t,
+                    {f"eval_{k}": v * weights for k, v in losses.items()},
                 )
-
 
     def forward_backward(self, batch, cond):
         # zero_grad(self.model_params)
@@ -259,11 +258,15 @@ class TrainLoop:
             # micro = batch[i : i + self.microbatch].to(self.rank)
             # last_batch = (i + self.microbatch) >= batch.shape[0]
             # t, weights = self.schedule_sampler.sample(micro.shape[0], self.rank)
-            
-            micro = (batch[0].to(self.rank),batch[1].to(self.rank),batch[2].to(self.rank),batch[3].to(self.rank))
+
+            micro = (
+                batch[0].to(self.rank),
+                batch[1].to(self.rank),
+                batch[2].to(self.rank),
+                batch[3].to(self.rank),
+            )
             last_batch = True
             t, weights = self.schedule_sampler.sample(micro[0].shape[0], self.rank)
-
 
             compute_losses = functools.partial(
                 self.diffusion.training_losses,
@@ -286,9 +289,9 @@ class TrainLoop:
 
             loss = (losses["loss"] * weights).mean()
             # print('----DEBUG-----',self.step,self.log_interval)
-            if self.step % self.log_interval == 0 and self.rank==0:
-                print("rank0: ",self.step,loss.item())
-                wandb.log({'loss':loss.item()})
+            if self.step % self.log_interval == 0 and self.rank == 0:
+                print("rank0: ", self.step, loss.item())
+                wandb.log({"loss": loss.item()})
             # log_loss_dict(
             #     self.diffusion, t, {k: v * weights for k, v in losses.items()}
             # )
@@ -300,13 +303,13 @@ class TrainLoop:
                 loss.backward()
 
     def optimize_fp16(self):
-        if any(not th.isfinite(p.grad).all() for p in self.model_params):
+        if any(not torch.isfinite(p.grad).all() for p in self.model_params):
             self.lg_loss_scale -= 1
             logger.log(f"Found NaN, decreased lg_loss_scale to {self.lg_loss_scale}")
             return
 
         model_grads_to_master_grads(self.model_params, self.master_params)
-        self.master_params[0].grad.mul_(1.0 / (2 ** self.lg_loss_scale))
+        self.master_params[0].grad.mul_(1.0 / (2**self.lg_loss_scale))
         self._log_grad_norm()
         self._anneal_lr()
         self.opt.step()
@@ -317,7 +320,7 @@ class TrainLoop:
 
     def grad_clip(self):
         # print('doing gradient clipping')
-        max_grad_norm=self.gradient_clipping #3.0
+        max_grad_norm = self.gradient_clipping  # 3.0
         if hasattr(self.opt, "clip_grad_norm"):
             # Some optimizers (like the sharded optimizer) have a specific way to do gradient clipping
             self.opt.clip_grad_norm(max_grad_norm)
@@ -328,8 +331,8 @@ class TrainLoop:
         #     self.model.clip_grad_norm_(args.max_grad_norm)
         else:
             # Revert to normal clipping otherwise, handling Apex or full precision
-            th.nn.utils.clip_grad_norm_(
-                self.model.parameters(), #amp.master_params(self.opt) if self.use_apex else
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(),  # amp.master_params(self.opt) if self.use_apex else
                 max_grad_norm,
             )
 
@@ -345,7 +348,7 @@ class TrainLoop:
     def _log_grad_norm(self):
         sqsum = 0.0
         for p in self.master_params:
-            sqsum += (p.grad ** 2).sum().item()
+            sqsum += (p.grad**2).sum().item()
         # logger.logkv_mean("grad_norm", np.sqrt(sqsum))
 
     def _anneal_lr(self):
@@ -375,9 +378,11 @@ class TrainLoop:
                 # print('writing to', bf.join(get_blob_logdir(), filename))
                 # print('writing to', bf.join(self.checkpoint_path, filename))
                 # with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
-                #     th.save(state_dict, f)
-                with bf.BlobFile(bf.join(self.checkpoint_path, filename), "wb") as f: # DEBUG **
-                    th.save(state_dict, f)
+                #     torch.save(state_dict, f)
+                with bf.BlobFile(
+                    bf.join(self.checkpoint_path, filename), "wb"
+                ) as f:  # DEBUG **
+                    torch.save(state_dict, f)
 
         save_checkpoint(0, self.master_params)
         for rate, params in zip(self.ema_rate, self.ema_params):
@@ -388,14 +393,14 @@ class TrainLoop:
         #         bf.join(get_blob_logdir(), f"opt{(self.step+self.resume_step):06d}.pt"),
         #         "wb",
         #     ) as f:
-        #         th.save(self.opt.state_dict(), f)
+        #         torch.save(self.opt.state_dict(), f)
 
         dist.barrier()
 
     def _master_params_to_state_dict(self, master_params):
         if self.use_fp16:
             master_params = unflatten_master_params(
-                list(self.model.parameters()), master_params # DEBUG **
+                list(self.model.parameters()), master_params  # DEBUG **
             )
         state_dict = self.model.state_dict()
         for i, (name, _value) in enumerate(self.model.named_parameters()):
@@ -454,4 +459,3 @@ def log_loss_dict(diffusion, ts, losses):
         for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
             logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
-
