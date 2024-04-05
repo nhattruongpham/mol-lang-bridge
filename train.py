@@ -12,7 +12,7 @@ from transformers import set_seed
 import torch.distributed as dist
 import wandb
 from src.models.scripts.mytokenizers import get_tokenizer
-from src.models.scripts.mydatasets import get_dataloader, ChEBIdataset
+from src.models.scripts.mydatasets import get_dataloader, Lang2molDataset
 import warnings
 import torch.multiprocessing as mp
 
@@ -31,12 +31,12 @@ def main_worker(rank, world_size):
     #     print(wandb.config)
 
     # dist_util.setup_dist(rank, world_size)
-    smtokenizer = get_tokenizer()
+    tokenizer = get_tokenizer()
     model = TransformerNetModel(
         in_channels=args.model_in_channels,  # 3, DEBUG**
         model_channels=args.model_model_channels,
         dropout=args.model_dropout,
-        vocab_size=len(smtokenizer),
+        vocab_size=len(tokenizer),
         hidden_size=args.model_hidden_size,
         num_attention_heads=args.model_num_attention_heads,
         num_hidden_layers=args.model_num_hidden_layers,
@@ -47,7 +47,7 @@ def main_worker(rank, world_size):
         "Total trainable params:",
         sum(p.numel() for p in model.parameters() if p.requires_grad),
     )
-    print("Smiles tokenizer vocab length:", len(smtokenizer))
+    print("Tokenizer vocab length:", len(tokenizer))
 
     diffusion = SpacedDiffusion(
         use_timesteps=[i for i in range(2000)],
@@ -63,10 +63,10 @@ def main_worker(rank, world_size):
     schedule_sampler = create_named_schedule_sampler("uniform", diffusion)
 
     print("Loading data...")
-    train_dataset = ChEBIdataset(
-        dir="datasets/SMILES/",
-        smi_tokenizer=smtokenizer,
-        split="train_val_256",
+    train_dataset = Lang2molDataset(
+        dir="dataset",
+        tokenizer=tokenizer,
+        split="train",
         replace_desc=False,
         corrupt_prob=0.0,
         mask_desc=False,
