@@ -5,6 +5,7 @@ import selfies as sf
 from datasets import load_dataset
 from rdkit import Chem
 from torch.utils.data import DistributedSampler, DataLoader, Dataset
+from mytokenizers import Tokenizer
 
 
 def get_dataloader(dataset, batchsize, rank, world_size):
@@ -13,15 +14,15 @@ def get_dataloader(dataset, batchsize, rank, world_size):
     )
 
     def collate(batch):
-        tok_selfies = [i["tok_selfies"] for i in batch]
+        selfies_ids = [i["selfies_ids"] for i in batch]
         caption_states = [i["caption_states"] for i in batch]
         caption_mask = [i["caption_mask"] for i in batch]
-        corrupted_tok_selfies = [i["corrupted_tok_selfies"] for i in batch]
+        corrupted_selfies_ids = [i["corrupted_selfies_ids"] for i in batch]
         return (
-            torch.concat(tok_selfies, dim=0),
+            torch.concat(selfies_ids, dim=0),
             torch.concat(caption_states, dim=0),
             torch.concat(caption_mask, dim=0),
-            torch.concat(corrupted_tok_selfies, dim=0),
+            torch.concat(corrupted_selfies_ids, dim=0),
         )
 
     dataloader = DataLoader(
@@ -88,17 +89,21 @@ class Lang2molDataset(Dataset):
     def __len__(self):
         return len(self.ori_data)
 
-    def permute(self, smiles):
+    def permute(self, selfies):
         if random.random() < self.prob:
-            return changeorder(smiles, shuffle=True)
+            return changeorder(selfies, shuffle=True)
         else:
-            return smiles
+            return selfies
 
     def __getitem__(self, idx):
         data = self.ori_data[idx]
         sample = {"id": data[0], "selfies": self.permute(data[1]), "caption": data[2]}
-        sample["tok_selfies"] = self.tokenizer(sample["selfies"])
-        sample["corrupted_tok_selfies"] = sample["tok_selfies"]
+        sample["selfies_ids"] = self.tokenizer(sample["selfies"]).input_ids
+        sample["corrupted_selfies_ids"] = (
+            self.tokenizer.corrupt(sample["selfies_ids"])
+            if random.random() < self.corrupt_prob
+            else sample["selfies_ids"]
+        )
 
         if self.load_state:
             sample["caption_states"] = self.desc_state[data[0]]["states"]
@@ -121,3 +126,17 @@ def changeorder(selfies, shuffle):
     new_selfies = sf.decoder(new_smiles)
 
     return new_selfies
+
+
+if __name__ == "__main__":
+    tokenizer = Tokenizer(
+        selfies_dict_path=r"D:\molecule\mol-lang-bridge\dataset\selfies_dict.txt"
+    )
+    train_dataset = Lang2molDataset(
+        dir="dataset",
+        tokenizer=tokenizer,
+        split="train",
+        load_state=False,
+    )
+
+    print(next(iter(train_dataset)))
