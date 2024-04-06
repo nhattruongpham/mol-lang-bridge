@@ -7,16 +7,11 @@ Docstrings have been added, as well as DDIM sampling and a new collection of bet
 
 import enum
 import math
-
+import torch
 import numpy as np
-import torch as th
 
 from .nn import mean_flat
-from .losses import (
-    normal_kl,
-    discretized_gaussian_log_likelihood,
-    discretized_text_log_likelihood,
-)
+from .losses import normal_kl, discretized_gaussian_log_likelihood
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
@@ -281,7 +276,7 @@ class GaussianDiffusion:
         :return: A noisy version of x_start.
         """
         if noise is None:
-            noise = th.randn_like(x_start)
+            noise = torch.randn_like(x_start)
         assert noise.shape == x_start.shape
         return (
             _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
@@ -374,15 +369,15 @@ class GaussianDiffusion:
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             if self.model_arch == "conv-unet":
                 assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
+                model_output, model_var_values = torch.split(model_output, C, dim=1)
                 # print('conv-unet')
             else:
                 assert model_output.shape == (B, x.size(1), C * 2)
-                model_output, model_var_values = th.split(model_output, C, dim=-1)
+                model_output, model_var_values = torch.split(model_output, C, dim=-1)
 
             if self.model_var_type == ModelVarType.LEARNED:
                 model_log_variance = model_var_values
-                model_variance = th.exp(model_log_variance)
+                model_variance = torch.exp(model_log_variance)
             else:
                 min_log = _extract_into_tensor(
                     self.posterior_log_variance_clipped, t, x.shape
@@ -391,7 +386,7 @@ class GaussianDiffusion:
                 # The model_var_values is [-1, 1] for [min_var, max_var].
                 frac = (model_var_values + 1) / 2
                 model_log_variance = frac * max_log + (1 - frac) * min_log
-                model_variance = th.exp(model_log_variance)
+                model_variance = torch.exp(model_log_variance)
         else:
             model_variance, model_log_variance = {
                 # for fixedlarge, we set the initial (log-)variance like so
@@ -498,18 +493,18 @@ class GaussianDiffusion:
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             if self.model_arch == "conv-unet":
                 assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
+                model_output, model_var_values = torch.split(model_output, C, dim=1)
                 # print('conv-unet')
             elif self.model_arch == "1d-unet":
                 assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
+                model_output, model_var_values = torch.split(model_output, C, dim=1)
             else:
                 assert model_output.shape == (B, x.size(1), C * 2)
-                model_output, model_var_values = th.split(model_output, C, dim=-1)
+                model_output, model_var_values = torch.split(model_output, C, dim=-1)
 
             if self.model_var_type == ModelVarType.LEARNED:
                 model_log_variance = model_var_values
-                model_variance = th.exp(model_log_variance)
+                model_variance = torch.exp(model_log_variance)
             else:
                 min_log = _extract_into_tensor(
                     self.posterior_log_variance_clipped, t, x.shape
@@ -518,7 +513,7 @@ class GaussianDiffusion:
                 # The model_var_values is [-1, 1] for [min_var, max_var].
                 frac = (model_var_values + 1) / 2
                 model_log_variance = frac * max_log + (1 - frac) * min_log
-                model_variance = th.exp(model_log_variance)
+                model_variance = torch.exp(model_log_variance)
         else:
             model_variance, model_log_variance = {
                 # for fixedlarge, we set the initial (log-)variance like so
@@ -636,19 +631,21 @@ class GaussianDiffusion:
         )
         if top_p is not None and top_p > 0:
             # print('top_p sampling')
-            noise = th.randn_like(x)
-            replace_mask = th.abs(noise) > top_p
+            noise = torch.randn_like(x)
+            replace_mask = torch.abs(noise) > top_p
             while replace_mask.any():
-                noise[replace_mask] = th.randn_like(noise[replace_mask])
-                replace_mask = th.abs(noise) > top_p
-            assert (th.abs(noise) <= top_p).all()
+                noise[replace_mask] = torch.randn_like(noise[replace_mask])
+                replace_mask = torch.abs(noise) > top_p
+            assert (torch.abs(noise) <= top_p).all()
 
         else:
-            noise = th.randn_like(x)
+            noise = torch.randn_like(x)
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
-        sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
+        sample = (
+            out["mean"] + nonzero_mask * torch.exp(0.5 * out["log_variance"]) * noise
+        )
         return {
             "sample": sample,
             "pred_xstart": out["pred_xstart"],
@@ -707,7 +704,7 @@ class GaussianDiffusion:
         if noise is not None:
             img = noise
         else:
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
         indices = list(range(custom_t_start))[::-1]
 
         if progress:
@@ -717,8 +714,8 @@ class GaussianDiffusion:
             indices = tqdm(indices)
 
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.p_sample(
                     model,
                     img,
@@ -803,7 +800,7 @@ class GaussianDiffusion:
         if noise is not None:
             img = noise.to(device)
         else:
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
         indices = list(range(self.num_timesteps))[::-1]
         # print(indices[-10:])
         # indices = indices[:-1]+[1,1,1,1,1,1,1]*60+[0]
@@ -817,8 +814,8 @@ class GaussianDiffusion:
             print("Text Guiding Generation ......")
             desc = (desc[0].to(img.device), desc[1].to(img.device))
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.p_sample(
                     model,
                     img,
@@ -859,7 +856,7 @@ class GaussianDiffusion:
         if noise is not None:
             img = noise
         else:
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
         indices = list(range(self.num_timesteps))[::-1]
 
         if progress:
@@ -869,8 +866,8 @@ class GaussianDiffusion:
             indices = tqdm(indices)
 
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.p_sample(
                     model,
                     img,
@@ -916,9 +913,9 @@ class GaussianDiffusion:
             img = noise
             # img = img[partial_mask] + partial_enc_with_noise[~partial_mask]
         else:
-            t_batch = th.tensor([self.num_timesteps - 1] * shape[0], device=device)
+            t_batch = torch.tensor([self.num_timesteps - 1] * shape[0], device=device)
             partial_enc_with_noise = self.q_sample(partial_enc, t_batch)
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
             # print(img.shape, partial_enc_with_noise.shape, partial_mask.shape)
             # img = img[partial_mask] + partial_enc_with_noise[~partial_mask]
             img[~partial_mask] = partial_enc_with_noise[~partial_mask]
@@ -931,8 +928,8 @@ class GaussianDiffusion:
             indices = tqdm(indices)
 
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.p_sample(
                     model,
                     img,
@@ -985,9 +982,9 @@ class GaussianDiffusion:
             img = noise
             # img = img[partial_mask] + partial_enc_with_noise[~partial_mask]
         else:
-            t_batch = th.tensor([self.num_timesteps - 1] * shape[0], device=device)
+            t_batch = torch.tensor([self.num_timesteps - 1] * shape[0], device=device)
             partial_enc_with_noise = self.q_sample(partial_enc, t_batch)
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
             # print(img.shape, partial_enc_with_noise.shape, partial_mask.shape)
             # img = img[partial_mask] + partial_enc_with_noise[~partial_mask]
             img[~partial_mask] = partial_enc_with_noise[~partial_mask]
@@ -1000,8 +997,8 @@ class GaussianDiffusion:
             indices = tqdm(indices)
 
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.p_sample(
                     model,
                     img,
@@ -1058,14 +1055,14 @@ class GaussianDiffusion:
         alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
         sigma = (
             eta
-            * th.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
-            * th.sqrt(1 - alpha_bar / alpha_bar_prev)
+            * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
+            * torch.sqrt(1 - alpha_bar / alpha_bar_prev)
         )
         # Equation 12.
-        noise = th.randn_like(x)
+        noise = torch.randn_like(x)
         mean_pred = (
-            out["pred_xstart"] * th.sqrt(alpha_bar_prev)
-            + th.sqrt(1 - alpha_bar_prev - sigma**2) * eps
+            out["pred_xstart"] * torch.sqrt(alpha_bar_prev)
+            + torch.sqrt(1 - alpha_bar_prev - sigma**2) * eps
         )
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
@@ -1111,8 +1108,8 @@ class GaussianDiffusion:
 
         # Equation 12. reversed
         mean_pred = (
-            out["pred_xstart"] * th.sqrt(alpha_bar_next)
-            + th.sqrt(1 - alpha_bar_next) * eps
+            out["pred_xstart"] * torch.sqrt(alpha_bar_next)
+            + torch.sqrt(1 - alpha_bar_next) * eps
         )
 
         return {"sample": mean_pred, "pred_xstart": out["pred_xstart"]}
@@ -1180,7 +1177,7 @@ class GaussianDiffusion:
         if noise is not None:
             img = noise
         else:
-            img = th.randn(*shape, device=device)
+            img = torch.randn(*shape, device=device)
         indices = list(range(self.num_timesteps))[::-1]
         if desc is not None:
             print("Text Guiding Generation ......")
@@ -1192,8 +1189,8 @@ class GaussianDiffusion:
             indices = tqdm(indices)
 
         for i in indices:
-            t = th.tensor([i] * shape[0], device=device)
-            with th.no_grad():
+            t = torch.tensor([i] * shape[0], device=device)
+            with torch.no_grad():
                 out = self.ddim_sample(
                     model,
                     img,
@@ -1258,13 +1255,13 @@ class GaussianDiffusion:
             # normal_dist = Normal(out["mean"], (0.5 * out["log_variance"]).exp())
             # decoder_nll = -normal_dist.log_prob(x_start)
             assert mapping_func is not None
-            if mapping_func is not None and th.any(t == 0):
+            if mapping_func is not None and torch.any(t == 0):
 
                 decoder_nll = mapping_func(out["mean"], input_ids) / out["mean"].size(
                     -1
                 )
             else:
-                decoder_nll = th.zeros_like(x_start)
+                decoder_nll = torch.zeros_like(x_start)
             model_kwargs["input_ids"] = input_ids
             model_kwargs["mapping_func"] = mapping_func
 
@@ -1287,7 +1284,7 @@ class GaussianDiffusion:
 
         # At the first timestep return the decoder NLL,
         # otherwise return KL(q(x_{t-1}|x_t,x_0) || p(x_{t-1}|x_t))
-        output = th.where((t == 0), decoder_nll, kl)
+        output = torch.where((t == 0), decoder_nll, kl)
         return {"output": output, "pred_xstart": out["pred_xstart"]}
 
     def _vb_terms_bpd_e2e(
@@ -1354,10 +1351,10 @@ class GaussianDiffusion:
             )
             kl_T = mean_flat(kl_T) / np.log(2.0)
             # print('1111',kl_T.shape, mask_1, kl.shape)
-            kl = th.where(mask_1, kl_T, kl)
+            kl = torch.where(mask_1, kl_T, kl)
 
         out_mean, out_variance, out_log_variance_clipped = self.q_mean_variance(
-            x_start, th.LongTensor([self.num_timesteps - 1]).to(x_start.device)
+            x_start, torch.LongTensor([self.num_timesteps - 1]).to(x_start.device)
         )
         kl_T = normal_kl(out_mean, out_log_variance_clipped, 0, 0)
         kl_T = mean_flat(kl_T) / np.log(2.0)
@@ -1366,7 +1363,7 @@ class GaussianDiffusion:
         # print()
         # At the first timestep return the decoder NLL,
         # otherwise return KL(q(x_{t-1}|x_t,x_0) || p(x_{t-1}|x_t))
-        # output = th.where((t == 0), decoder_nll, kl)
+        # output =torch.where((t == 0), decoder_nll, kl)
         output = kl + decoder_nll + kl_T
         return {
             "output": output,
@@ -1382,7 +1379,7 @@ class GaussianDiffusion:
         :param x_start_mean:
         :return:
         """
-        noise = th.randn_like(x_start_mean)
+        noise = torch.randn_like(x_start_mean)
         # print(std.shape, noise.shape, x_start_mean.shape)
         assert noise.shape == x_start_mean.shape
         # print(x_start_mean.device, noise.device)
@@ -1398,7 +1395,7 @@ class GaussianDiffusion:
 
         logits = get_logits(reshaped_x_t)
 
-        loss_fct = th.nn.CrossEntropyLoss(reduction="none")
+        loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
         decoder_nll = loss_fct(
             logits.view(-1, logits.size(-1)), input_ids.view(-1)
         ).view(input_ids.shape)
@@ -1454,28 +1451,28 @@ class GaussianDiffusion:
         # assert((corrupt_ids==input_ids).all()) # only for check
 
         #########################################
-        mix_ids = th.where(t.reshape(-1, 1) < 400, corrupt_ids, input_ids)
+        mix_ids = torch.where(t.reshape(-1, 1) < 400, corrupt_ids, input_ids)
         if t.max() > self.maxt:
             self.maxt = t.max()
             print("Recieving max t:{}".format(self.maxt))
         ##########################################
-        # th.tensor([0]).to('cuda')
+        # torch.tensor([0]).to('cuda')
         x_start_mean = model.model.module.get_embeds(input_ids)
         mix_start_mean = model.model.module.get_embeds(mix_ids)
-        # th.tensor([0]).to('cuda')
+        # torch.tensor([0]).to('cuda')
         # print(x_start_mean.device)
         std = _extract_into_tensor(
             self.sqrt_one_minus_alphas_cumprod,
-            th.tensor([0]).to(x_start_mean.device),
+            torch.tensor([0]).to(x_start_mean.device),
             x_start_mean.shape,
         )
         # print(std.shape, )
-        # x_start_log_var = 2 * th.log(std)
+        # x_start_log_var = 2 * torch.log(std)
         x_start = self.get_x_start(x_start_mean, std)
         mix_start = self.get_x_start(mix_start_mean, std)
         # print(x_start_mean.shape, x_start.shape)
         if noise is None:
-            noise = th.randn_like(mix_start)
+            noise = torch.randn_like(mix_start)
         x_t = self.q_sample(mix_start, t, noise=noise)  # reparametrization trick.
         get_logits = model.model.module.get_logits
 
@@ -1518,11 +1515,11 @@ class GaussianDiffusion:
             t0_mask = t == 0
             t0_loss = mean_flat((x_start_mean - model_out_x_start) ** 2)
             # print(terms["mse"].shape, )
-            terms["mse"] = th.where(t0_mask, t0_loss, terms["mse"])
+            terms["mse"] = torch.where(t0_mask, t0_loss, terms["mse"])
 
             # tT_mask = (t == self.num_timesteps - 1)
             out_mean, _, _ = self.q_mean_variance(
-                x_start, th.LongTensor([self.num_timesteps - 1]).to(x_start.device)
+                x_start, torch.LongTensor([self.num_timesteps - 1]).to(x_start.device)
             )
             tT_loss = mean_flat(out_mean**2)
 
@@ -1548,7 +1545,7 @@ class GaussianDiffusion:
         :return: a batch of [N] KL values (in bits), one per batch element.
         """
         batch_size = x_start.shape[0]
-        t = th.tensor([self.num_timesteps - 1] * batch_size, device=x_start.device)
+        t = torch.tensor([self.num_timesteps - 1] * batch_size, device=x_start.device)
         qt_mean, _, qt_log_variance = self.q_mean_variance(x_start, t)
         kl_prior = normal_kl(
             mean1=qt_mean, logvar1=qt_log_variance, mean2=0.0, logvar2=0.0
@@ -1572,10 +1569,10 @@ class GaussianDiffusion:
             x_start_mean = x_start_mean.permute(0, 2, 1)
         std = _extract_into_tensor(
             self.sqrt_one_minus_alphas_cumprod,
-            th.tensor([0]).to(x_start_mean.device),
+            torch.tensor([0]).to(x_start_mean.device),
             x_start_mean.shape,
         )
-        x_start_log_var = 2 * th.log(std)
+        x_start_log_var = 2 * torch.log(std)
         x_start = self.get_x_start(x_start_mean, std)
         get_logits = model.get_logits
 
@@ -1583,10 +1580,10 @@ class GaussianDiffusion:
         xstart_mse = []
         mse = []
         for t in list(range(self.num_timesteps))[::-1]:
-            t_batch = th.tensor([t] * batch_size, device=device)
-            noise = th.randn_like(x_start)
+            t_batch = torch.tensor([t] * batch_size, device=device)
+            noise = torch.randn_like(x_start)
             x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
-            with th.no_grad():
+            with torch.no_grad():
                 out = self._vb_terms_bpd_e2e(
                     model,
                     x_start=x_start,
@@ -1610,9 +1607,9 @@ class GaussianDiffusion:
             mse.append(mean_flat((eps - noise) ** 2))
         vb.append(out["decoder_nll"])
 
-        vb = th.stack(vb, dim=1)
-        xstart_mse = th.stack(xstart_mse, dim=1)
-        mse = th.stack(mse, dim=1)
+        vb = torch.stack(vb, dim=1)
+        xstart_mse = torch.stack(xstart_mse, dim=1)
+        mse = torch.stack(mse, dim=1)
 
         # prior_bpd = self._prior_bpd(x_start)
         prior_bpd = out["kl_T"]
@@ -1652,12 +1649,12 @@ class GaussianDiffusion:
         xstart_mse = []
         mse = []
         for t in list(range(self.num_timesteps))[::-1]:
-            t_batch = th.tensor([t] * batch_size, device=device)
-            noise = th.randn_like(x_start)
+            t_batch = torch.tensor([t] * batch_size, device=device)
+            noise = torch.randn_like(x_start)
             # print(t)
             x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
             # Calculate VLB term at the current timestep
-            with th.no_grad():
+            with torch.no_grad():
                 out = self._vb_terms_bpd(
                     model,
                     x_start=x_start,
@@ -1682,7 +1679,7 @@ class GaussianDiffusion:
 
             # print(is_very_close(out2['pred_xstart'],out["pred_xstart"]), 'first isclose --> check p_mean')
             # model.eval()
-            # with th.no_grad():
+            # with torch.no_grad():
             #     direct_pred_eps = model(x_t, self._scale_timesteps(t_batch), **model_kwargs)
             # print(((direct_pred_eps - noise) ** 2).mean(), 'ans1', self.rescale_timesteps)
 
@@ -1705,9 +1702,9 @@ class GaussianDiffusion:
             ## DEBUG
             mse.append(mean_flat((eps - noise) ** 2))
 
-        vb = th.stack(vb, dim=1)
-        xstart_mse = th.stack(xstart_mse, dim=1)
-        mse = th.stack(mse, dim=1)
+        vb = torch.stack(vb, dim=1)
+        xstart_mse = torch.stack(xstart_mse, dim=1)
+        mse = torch.stack(mse, dim=1)
 
         prior_bpd = self._prior_bpd(x_start)
         total_bpd = vb.sum(dim=1) + prior_bpd
@@ -1730,7 +1727,7 @@ def _extract_into_tensor(arr, timesteps, broadcast_shape):
                             dimension equal to the length of timesteps.
     :return: a tensor of shape [batch_size, 1, ...] where the shape has K dims.
     """
-    res = th.from_numpy(arr).to(device=timesteps.device)[timesteps].float()
+    res = torch.from_numpy(arr).to(device=timesteps.device)[timesteps].float()
     while len(res.shape) < len(broadcast_shape):
         res = res[..., None]
     return res.expand(broadcast_shape)

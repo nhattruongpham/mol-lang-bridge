@@ -77,7 +77,7 @@ def get_tokenizer(name="QizhiPei/biot5-base-text2mol"):
     prefixed_amino_acids = [f"<p>{aa}" for aa in amino_acids]
     tokenizer.add_tokens(prefixed_amino_acids)
 
-    selfies_dict_list = [line.strip() for line in open("selfies_dict.txt")]
+    selfies_dict_list = [line.strip() for line in open("dataset/selfies_dict.txt")]
     tokenizer.add_tokens(selfies_dict_list)
 
     special_tokens_dict = {

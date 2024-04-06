@@ -1,18 +1,18 @@
 import argparse
 import os
-from src.models.improved_diffusion import gaussian_diffusion as gd
-from src.models.improved_diffusion.respace import SpacedDiffusion
-from src.models.improved_diffusion import dist_util
-from src.models.improved_diffusion.transformer_model import TransformerNetModel
-from src.models.improved_diffusion.resample import create_named_schedule_sampler
-from src.models.improved_diffusion.script_util import model_and_diffusion_defaults
-from src.models.improved_diffusion.script_util import add_dict_to_argparser
-from src.models.improved_diffusion.train_util import TrainLoop
+from src.improved_diffusion import gaussian_diffusion as gd
+from src.improved_diffusion.respace import SpacedDiffusion
+from src.improved_diffusion import dist_util
+from src.improved_diffusion.transformer_model import TransformerNetModel
+from src.improved_diffusion.resample import create_named_schedule_sampler
+from src.improved_diffusion.script_util import model_and_diffusion_defaults
+from src.improved_diffusion.script_util import add_dict_to_argparser
+from src.improved_diffusion.train_util import TrainLoop
 from transformers import set_seed
 import torch.distributed as dist
 import wandb
-from src.models.scripts.mytokenizers import get_tokenizer
-from src.models.scripts.mydatasets import get_dataloader, Lang2molDataset
+from src.scripts.mytokenizers import get_tokenizer
+from src.scripts.mydatasets import get_dataloader, Lang2molDataset
 import warnings
 import torch.multiprocessing as mp
 
@@ -23,12 +23,12 @@ def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(args.seed)
 
-    # if rank == 0:
-    #     wandb.init(
-    #         project="DiffusionLMRegexAug",
-    #         config=args.__dict__,
-    #     )
-    #     print(wandb.config)
+    wandb.login(key=args.wandb_token)
+    wandb.init(
+        project="DiffusionLMRegexAug",
+        config=args.__dict__,
+    )
+    print(wandb.config)
 
     # dist_util.setup_dist(rank, world_size)
     tokenizer = get_tokenizer()
@@ -102,12 +102,12 @@ def main_worker(rank, world_size):
 def create_argparser():
     defaults = dict()
     text_defaults = dict(
+        wandb_token="",
         attention_resolutions="16,8",
         batch_size=64,
         cache_mode="no",
-        checkpoint_path="../../checkpoints",
+        checkpoint_path="checkpoints",
         class_cond=False,
-        commonGen_train="diffusion_lm/common-gen/commongen_data",
         config="ll",
         config_name="bert-base-uncased",
         data_dir="",
@@ -147,7 +147,6 @@ def create_argparser():
         rescale_learned_sigmas=True,
         rescale_timesteps=True,
         resume_checkpoint="",
-        roc_train="diffusion_lm/ROCstory",
         save_interval=10000,
         schedule_sampler="uniform",
         seed=19991009,
@@ -175,8 +174,6 @@ def create_argparser():
 
 
 if __name__ == "__main__":
-    import os
-
     os.environ["CUDA_DEVICES_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     world_size = 1

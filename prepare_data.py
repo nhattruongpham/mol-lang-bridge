@@ -1,11 +1,11 @@
 import os
 import torch
 import argparse
-
-from src.models.scripts.mydatasets import Lang2molDataset
-from src.models.scripts.mytokenizers import get_tokenizer
-from transformers import AutoModel
 from tqdm import tqdm
+from transformers import T5EncoderModel
+
+from src.scripts.mydatasets import Lang2molDataset
+from src.scripts.mytokenizers import get_tokenizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", default="dataset")
@@ -26,7 +26,7 @@ dataset = Lang2molDataset(
     replace_desc=False,
     load_state=False,
 )
-model = AutoModel.from_pretrained(args.pretrained_name)
+model = T5EncoderModel.from_pretrained(args.pretrained_name)
 model.to(device)
 model.eval()
 
@@ -52,4 +52,4 @@ with torch.no_grad():
             "mask": attention_mask,
         }
 
-torch.save(volume, os.path.join("datasets", args.split + "_desc_states.pt"))
+torch.save(volume, os.path.join("dataset", args.split + "_desc_states.pt"))
