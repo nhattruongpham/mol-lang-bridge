@@ -55,7 +55,7 @@ class TrainLoop:
         # world_size = dist.get_world_size()
         # print("initialing Trainer for", rank, "/", world_size)
         # self.rank = rank
-        world_size = 0
+        world_size = 1
         self.world_size = world_size
         self.diffusion = diffusion
         self.data = data
@@ -263,10 +263,10 @@ class TrainLoop:
             # t, weights = self.schedule_sampler.sample(micro.shape[0], self.rank)
 
             micro = (
-                batch[0].to(self.rank),
-                batch[1].to(self.rank),
-                batch[2].to(self.rank),
-                batch[3].to(self.rank),
+                batch[0].to(self.rank),  # selfies_ids
+                batch[1].to(self.rank),  # caption_states
+                batch[2].to(self.rank),  # caption_mask
+                batch[3].to(self.rank),  # corrupted_selfies_ids
             )
             last_batch = True
             t, weights = self.schedule_sampler.sample(micro[0].shape[0], self.rank)

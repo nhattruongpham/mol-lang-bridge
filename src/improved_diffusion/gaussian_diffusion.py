@@ -224,7 +224,6 @@ class GaussianDiffusion:
         )
 
         self.training_mode = training_mode
-        print("training mode is ", training_mode)
         self.mapping_func = None
         #
         # if training_mode == 'e2e':
@@ -234,12 +233,13 @@ class GaussianDiffusion:
         self.maxt = -1
 
     def training_losses(self, model, *args, **kwargs):
-        if self.training_mode == "e2e":
-            return self.training_losses_e2e(model, *args, **kwargs)
-        elif self.training_mode == "e2e-simple":
-            return self.training_losses_e2e_simple(model, *args, **kwargs)
-        else:
-            return self.training_losses_emb(model, *args, **kwargs)
+        return self.training_losses_e2e(model, *args, **kwargs)
+        # if self.training_mode == "e2e":
+        #     return self.training_losses_e2e(model, *args, **kwargs)
+        # elif self.training_mode == "e2e-simple":
+        #     return self.training_losses_e2e_simple(model, *args, **kwargs)
+        # else:
+        #     return self.training_losses_emb(model, *args, **kwargs)
 
     def calc_bpd_loop(self, model, *args, **kwargs):
         if self.training_mode == "e2e":
@@ -1426,38 +1426,41 @@ class GaussianDiffusion:
 
     def training_losses_e2e(self, model, micro, t, noise=None):
         """
-        Compute training losses for a single timestep.
+        This function calculates the training losses for an end-to-end model with optional noise.
 
-        :param model: the model to evaluate loss on.
-        :param x_start: the [N x C x ...] tensor of inputs.
-        :param t: a batch of timestep indices.
-        :param model_kwargs: if not None, a dict of extra keyword arguments to
-            pass to the model. This can be used for conditioning.
-        :param noise: if specified, the specific Gaussian noise to try to remove.
-        :return: a dict with the key "loss" containing a tensor of shape [N].
-                 Some mean or variance settings may also have other keys.
+        :param model: Great! It looks like you are defining a method called `training_losses_e2e`. Could
+        you please provide more information about the `model` parameter? What type of object is it
+        expected to be?
+        :param micro: The `micro` parameter in the `training_losses_e2e` function likely refers to the
+        micro-batch size used during training. Micro-batch size is a subset of the total batch size that
+        is processed together before updating the model's weights. It can be useful for training large
+        models that do
+        :param t: The parameter "t" in the function `training_losses_e2e` likely represents the current
+        training iteration or epoch number. It is used to track the progress of the training process and
+        can be helpful for various purposes such as logging, visualization, or controlling the training
+        flow
+        :param noise: The `noise` parameter in the `training_losses_e2e` function is used to add noise
+        to the training process. If a value is provided for the `noise` parameter, it will introduce
+        randomness or perturbations to the training data or model during the training process. This can
+        be useful
         """
-        # assert 'input_ids' in model_kwargs
-        # input_ids = model_kwargs.pop('input_ids').to(t.device)
-
-        # input_ids = x_start
-        # x_start_mean = model.model.module.get_embeds(input_ids)
-
-        input_ids = micro[0]
-        desc_state = micro[1]
-        desc_mask = micro[2]
-        corrupt_ids = micro[3]
-        assert corrupt_ids.shape == input_ids.shape
-        # assert((corrupt_ids==input_ids).all()) # only for check
+        # input_ids = micro[0]
+        selfies_ids = micro[0]
+        caption_states = micro[1]
+        caption_mask = micro[2]
+        corrupted_tok_selfies = micro[3]
+        assert corrupted_tok_selfies.shape == selfies_ids.shape
 
         #########################################
-        mix_ids = torch.where(t.reshape(-1, 1) < 400, corrupt_ids, input_ids)
+        mix_ids = torch.where(
+            t.reshape(-1, 1) < 400, corrupted_tok_selfies, tok_selfies
+        )
         if t.max() > self.maxt:
             self.maxt = t.max()
             print("Recieving max t:{}".format(self.maxt))
         ##########################################
         # torch.tensor([0]).to('cuda')
-        x_start_mean = model.model.module.get_embeds(input_ids)
+        x_start_mean = model.model.module.get_embeds(selfies_ids)
         mix_start_mean = model.model.module.get_embeds(mix_ids)
         # torch.tensor([0]).to('cuda')
         # print(x_start_mean.device)
@@ -1487,7 +1490,9 @@ class GaussianDiffusion:
         ):
             # print(x_t.shape)
             # model_output = model(x_t, self._scale_timesteps(t))
-            model_output = model(x_t, self._scale_timesteps(t), desc_state, desc_mask)
+            model_output = model(
+                x_t, self._scale_timesteps(t), caption_states, caption_mask
+            )
 
             if self.model_var_type in [
                 ModelVarType.LEARNED,
@@ -1523,7 +1528,7 @@ class GaussianDiffusion:
             )
             tT_loss = mean_flat(out_mean**2)
 
-            decoder_nll = self.token_discrete_loss(x_start, get_logits, input_ids)
+            decoder_nll = self.token_discrete_loss(x_start, get_logits, selfies_ids)
 
             if "vb" in terms:
                 terms["loss"] = terms["mse"] + terms["vb"]

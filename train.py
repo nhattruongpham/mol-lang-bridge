@@ -23,12 +23,12 @@ def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(args.seed)
 
-    wandb.login(key=args.wandb_token)
-    wandb.init(
-        project="DiffusionLMRegexAug",
-        config=args.__dict__,
-    )
-    print(wandb.config)
+    # wandb.login(key=args.wandb_token)
+    # wandb.init(
+    #     project="DiffusionLMRegexAug",
+    #     config=args.__dict__,
+    # )
+    # print(wandb.config)
 
     # dist_util.setup_dist(rank, world_size)
     tokenizer = get_tokenizer()
@@ -69,7 +69,6 @@ def main_worker(rank, world_size):
         split="train",
         replace_desc=False,
         corrupt_prob=0.0,
-        mask_desc=False,
     )
     print("In total", len(train_dataset), "for training....")
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
@@ -102,7 +101,7 @@ def main_worker(rank, world_size):
 def create_argparser():
     defaults = dict()
     text_defaults = dict(
-        wandb_token="",
+        wandb_token="e7ec68f70281e418d89a918a45859f150aef9405",
         attention_resolutions="16,8",
         batch_size=64,
         cache_mode="no",
