@@ -188,10 +188,9 @@ class TrainLoop:
         ):
             pbar.set_description(f"{self.step + self.resume_step}")
             batch = next(self.data)
-            cond = None
             # if self.step<3:
             #     print("RANK:",self.rank,"STEP:",self.step,"BATCH:",batch)
-            self.run_step(batch, cond)
+            self.run_step(batch, cond=None)
             if self.step % self.log_interval == 0:
                 # dist.barrier()
                 pass
@@ -264,7 +263,7 @@ class TrainLoop:
 
             micro = (
                 batch[0].to(self.rank),  # selfies_ids
-                batch[1].to(self.rank),  # caption_states
+                batch[1].to(self.rank),  # caption_state
                 batch[2].to(self.rank),  # caption_mask
                 batch[3].to(self.rank),  # corrupted_selfies_ids
             )

@@ -104,8 +104,11 @@ class Tokenizer:
         tokenizer.add_special_tokens(special_tokens_dict)
         return tokenizer
 
-    def __call__(self, *args: torch.Any, **kwds: torch.Any):
+    def __call__(self, *args, **kwds):
         return self.tokenizer(*args, **kwds)
+
+    def __len__(self):
+        return len(self.tokenizer)
 
     def corrupt(self, selfies_list: list):
         tensors = []
@@ -115,6 +118,7 @@ class Tokenizer:
             tensors.append(self.corrupt_one(selfies))
         return torch.concat(tensors, dim=0)
 
+    # TODO: rewrite this for selfies
     def corrupt_one(self, selfies):
         smi = sf.decoder(selfies)
         # res = [self.toktoid[i] for i in self.rg.findall(smi)]

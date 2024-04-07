@@ -176,7 +176,6 @@ class GaussianDiffusion:
         rescale_timesteps=False,
         model_arch=None,
         training_mode="emb",
-        # model_arch='conv-unet',
     ):
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
@@ -308,146 +307,6 @@ class GaussianDiffusion:
         )
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def p_mean_variance2(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
-    ):
-        """
-        Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
-        the initial x, x_0.
-
-        :param model: the model, which takes a signal and a batch of timesteps
-                      as input.
-        :param x: the [N x C x ...] tensor at time t.
-        :param t: a 1-D Tensor of timesteps.
-        :param clip_denoised: if True, clip the denoised signal into [-1, 1].
-        :param denoised_fn: if not None, a function which applies to the
-            x_start prediction before it is used to sample. Applies before
-            clip_denoised.
-        :param model_kwargs: if not None, a dict of extra keyword arguments to
-            pass to the model. This can be used for conditioning.
-        :return: a dict with the following keys:
-                 - 'mean': the model mean output.
-                 - 'variance': the model variance output.
-                 - 'log_variance': the log of 'variance'.
-                 - 'pred_xstart': the prediction for x_0.
-        """
-        if model_kwargs is None:
-            model_kwargs = {}
-        if self.model_arch == "conv-unet":
-            B, C = x.shape[:2]
-        else:
-            B, C = x.size(0), x.size(-1)
-        assert t.shape == (B,)
-
-        # DEBUG:
-        if "debug_x_t" in model_kwargs:
-            flag = True
-            debug_x_t = model_kwargs.pop("debug_x_t")
-            debug_t_batch = model_kwargs.pop("debug_t_batch")
-            debug_direct_pred_eps = model_kwargs.pop("debug_direct_pred_eps")
-            debug_x_start_cycle_pred = model_kwargs.pop("debug_x_start_cycle_pred")
-        else:
-            flag = False
-        print(model_kwargs)
-        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
-
-        # DEBUG path:
-        def is_very_close(a, b):
-            return ((a - b) ** 2).mean()
-
-        direct_pred_eps = model(x, self._scale_timesteps(t), **model_kwargs)
-        print(is_very_close(direct_pred_eps, model_output), "debug 01")
-        if flag:
-            print(model_kwargs)
-            print(is_very_close(debug_direct_pred_eps, model_output), "debug 001")
-            print(is_very_close(debug_x_t, x), "debug 005")
-            print(is_very_close(debug_t_batch.float(), t.float()), "debug 006")
-        x_start_cycle_pred = self._predict_xstart_from_eps(
-            x_t=x, t=t, eps=direct_pred_eps
-        )
-
-        if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
-            if self.model_arch == "conv-unet":
-                assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = torch.split(model_output, C, dim=1)
-                # print('conv-unet')
-            else:
-                assert model_output.shape == (B, x.size(1), C * 2)
-                model_output, model_var_values = torch.split(model_output, C, dim=-1)
-
-            if self.model_var_type == ModelVarType.LEARNED:
-                model_log_variance = model_var_values
-                model_variance = torch.exp(model_log_variance)
-            else:
-                min_log = _extract_into_tensor(
-                    self.posterior_log_variance_clipped, t, x.shape
-                )
-                max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
-                # The model_var_values is [-1, 1] for [min_var, max_var].
-                frac = (model_var_values + 1) / 2
-                model_log_variance = frac * max_log + (1 - frac) * min_log
-                model_variance = torch.exp(model_log_variance)
-        else:
-            model_variance, model_log_variance = {
-                # for fixedlarge, we set the initial (log-)variance like so
-                # to get a better decoder log likelihood.
-                ModelVarType.FIXED_LARGE: (
-                    np.append(self.posterior_variance[1], self.betas[1:]),
-                    np.log(np.append(self.posterior_variance[1], self.betas[1:])),
-                ),
-                ModelVarType.FIXED_SMALL: (
-                    self.posterior_variance,
-                    self.posterior_log_variance_clipped,
-                ),
-            }[self.model_var_type]
-            model_variance = _extract_into_tensor(model_variance, t, x.shape)
-            model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
-
-        def process_xstart(x):
-            if denoised_fn is not None:
-                print("process_xstart 1")
-                x = denoised_fn(x)
-            if clip_denoised:
-                print("process_xstart 2")
-                return x.clamp(-1, 1)
-            return x
-
-        if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-            pred_xstart = process_xstart(
-                self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output)
-            )
-            model_mean = model_output
-        elif self.model_mean_type in [ModelMeanType.START_X, ModelMeanType.EPSILON]:
-            if self.model_mean_type == ModelMeanType.START_X:
-                pred_xstart = process_xstart(model_output)
-            else:
-                print("should go here")
-                pred_xstart = process_xstart(
-                    self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
-                )
-                print(is_very_close(x_start_cycle_pred, pred_xstart), "debug 02")
-                if flag:
-                    print(
-                        is_very_close(debug_x_start_cycle_pred, model_output),
-                        "debug 002",
-                    )
-            model_mean, _, _ = self.q_posterior_mean_variance(
-                x_start=pred_xstart, x_t=x, t=t
-            )
-        else:
-            raise NotImplementedError(self.model_mean_type)
-
-        assert (
-            model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
-        )
-        print(is_very_close(x_start_cycle_pred, pred_xstart), "debug 03")
-        return {
-            "mean": model_mean,
-            "variance": model_variance,
-            "log_variance": model_log_variance,
-            "pred_xstart": pred_xstart,
-        }
-
     def p_mean_variance(
         self,
         model,
@@ -456,7 +315,7 @@ class GaussianDiffusion:
         clip_denoised=True,
         denoised_fn=None,
         model_kwargs=None,
-        desc=None,
+        caption=None,
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -478,6 +337,7 @@ class GaussianDiffusion:
                  - 'log_variance': the log of 'variance'.
                  - 'pred_xstart': the prediction for x_0.
         """
+        caption_state, caption_mask = caption[0], caption[1]
         if model_kwargs is None:
             model_kwargs = {}
         if self.model_arch == "conv-unet" or self.model_arch == "1d-unet":
@@ -487,7 +347,7 @@ class GaussianDiffusion:
         assert t.shape == (B,)
         # print(x.shape)
         model_output = model(
-            x, self._scale_timesteps(t), desc[0], desc[1], **model_kwargs
+            x, self._scale_timesteps(t), caption_state, caption_mask, **model_kwargs
         )
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
@@ -603,7 +463,7 @@ class GaussianDiffusion:
         denoised_fn=None,
         model_kwargs=None,
         top_p=None,
-        desc=None,
+        caption=None,
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -627,7 +487,7 @@ class GaussianDiffusion:
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
-            desc=desc,
+            caption=caption,
         )
         if top_p is not None and top_p > 0:
             # print('top_p sampling')
@@ -738,7 +598,7 @@ class GaussianDiffusion:
         device=None,
         progress=False,
         top_p=None,
-        desc=None,
+        caption=None,
     ):
         """
         Generate samples from the model.
@@ -768,7 +628,7 @@ class GaussianDiffusion:
             device=device,
             progress=progress,
             top_p=top_p,
-            desc=desc,
+            caption=caption,
         ):
             final = sample
         return final["sample"]
@@ -784,7 +644,7 @@ class GaussianDiffusion:
         device=None,
         progress=False,
         top_p=None,
-        desc=None,
+        caption=None,
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -810,9 +670,12 @@ class GaussianDiffusion:
             from tqdm.auto import tqdm
 
             indices = tqdm(indices)
-        if desc is not None:
+        if caption is not None:
             print("Text Guiding Generation ......")
-            desc = (desc[0].to(img.device), desc[1].to(img.device))
+            caption = (
+                caption[0].to(img.device),
+                caption[1].to(img.device),
+            )  # (caption_state, caption_mask)
         for i in indices:
             t = torch.tensor([i] * shape[0], device=device)
             with torch.no_grad():
@@ -824,7 +687,7 @@ class GaussianDiffusion:
                     denoised_fn=denoised_fn,
                     model_kwargs=model_kwargs,
                     top_p=top_p,
-                    desc=desc,
+                    caption=caption,
                 )
                 yield out
                 img = out["sample"]
@@ -1032,7 +895,7 @@ class GaussianDiffusion:
         model_kwargs=None,
         eta=0.0,
         langevin_fn=None,
-        desc=None,
+        caption=None,
     ):
         """
         Sample x_{t-1} from the model using DDIM.
@@ -1046,7 +909,7 @@ class GaussianDiffusion:
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
-            desc=desc,
+            caption=caption,
         )
         # Usually our model outputs epsilon, but we re-derive it
         # in case we used x_start or x_prev prediction.
@@ -1127,7 +990,7 @@ class GaussianDiffusion:
         eta=0.0,
         top_p=-1.0,
         langevin_fn=None,
-        desc=None,
+        caption=None,
     ):
         """
         Generate samples from the model using DDIM.
@@ -1146,7 +1009,7 @@ class GaussianDiffusion:
             progress=progress,
             eta=eta,
             langevin_fn=langevin_fn,
-            desc=desc,
+            caption=caption,
         ):
             final = sample
         return final["sample"]
@@ -1163,7 +1026,7 @@ class GaussianDiffusion:
         progress=False,
         eta=0.0,
         langevin_fn=None,
-        desc=None,
+        caption=None,
     ):
         """
         Use DDIM to sample from the model and yield intermediate samples from
@@ -1179,9 +1042,12 @@ class GaussianDiffusion:
         else:
             img = torch.randn(*shape, device=device)
         indices = list(range(self.num_timesteps))[::-1]
-        if desc is not None:
+        if caption is not None:
             print("Text Guiding Generation ......")
-            desc = (desc[0].to(img.device), desc[1].to(img.device))
+            caption = (
+                caption[0].to(img.device),
+                caption[1].to(img.device),
+            )  # (caption_state, caption_mask)
         if progress:
             # Lazy import so that we don't depend on tqdm.
             from tqdm.auto import tqdm
@@ -1200,7 +1066,7 @@ class GaussianDiffusion:
                     model_kwargs=model_kwargs,
                     eta=eta,
                     langevin_fn=langevin_fn,
-                    desc=desc,
+                    caption=caption,
                 )
                 yield out
                 img = out["sample"]
@@ -1342,15 +1208,10 @@ class GaussianDiffusion:
 
         mask_1 = t == 0
         if mask_1.any():
-            # print(x_start_log_var, out["log_variance"][0], 't=0')
-            # kl_T = normal_kl(
-            #     x_start_mean, x_start_log_var, out["mean"], x_start_log_var #out["log_variance"]
-            # )
             kl_T = normal_kl(
                 x_start_mean, x_start_log_var, out["mean"], out["log_variance"]
             )
             kl_T = mean_flat(kl_T) / np.log(2.0)
-            # print('1111',kl_T.shape, mask_1, kl.shape)
             kl = torch.where(mask_1, kl_T, kl)
 
         out_mean, out_variance, out_log_variance_clipped = self.q_mean_variance(
@@ -1426,54 +1287,55 @@ class GaussianDiffusion:
 
     def training_losses_e2e(self, model, micro, t, noise=None):
         """
-        This function calculates the training losses for an end-to-end model with optional noise.
+        The function `training_losses_e2e` calculates various loss terms for an end-to-end training
+        process in a machine learning model.
 
-        :param model: Great! It looks like you are defining a method called `training_losses_e2e`. Could
-        you please provide more information about the `model` parameter? What type of object is it
-        expected to be?
-        :param micro: The `micro` parameter in the `training_losses_e2e` function likely refers to the
-        micro-batch size used during training. Micro-batch size is a subset of the total batch size that
-        is processed together before updating the model's weights. It can be useful for training large
-        models that do
-        :param t: The parameter "t" in the function `training_losses_e2e` likely represents the current
-        training iteration or epoch number. It is used to track the progress of the training process and
-        can be helpful for various purposes such as logging, visualization, or controlling the training
-        flow
-        :param noise: The `noise` parameter in the `training_losses_e2e` function is used to add noise
-        to the training process. If a value is provided for the `noise` parameter, it will introduce
-        randomness or perturbations to the training data or model during the training process. This can
-        be useful
+        :param model: The `model` parameter in the `training_losses_e2e` function seems to be an
+        instance of a model used for training. It is likely a neural network model that is being trained
+        for a specific task, such as sequence generation or prediction. The model is used within the
+        function to make predictions
+        :param micro: The `micro` parameter in the `training_losses_e2e` function seems to be a tuple
+        containing the following elements:
+        :param t: The `t` parameter in the `training_losses_e2e` function seems to represent the time
+        step or timestep index. It is used to determine certain conditions within the function, such as
+        comparing it to a threshold value of 400 and scaling timesteps. The function performs various
+        calculations and computations based
+        :param noise: The `noise` parameter in the `training_losses_e2e` function is used to pass a
+        tensor representing random noise. If the `noise` parameter is not provided when calling the
+        function, it generates random noise using `torch.randn_like(mix_start)`. This noise is then used
+        in the
+        :return: The function `training_losses_e2e` returns a dictionary `terms` containing different
+        loss terms based on the specified loss type. The specific terms included in the dictionary
+        depend on the conditions and calculations performed within the function for the given loss type.
+        The function calculates and populates the `terms` dictionary with relevant loss values such as
+        mean squared error (mse), variational bound (vb), decoder negative
         """
-        # input_ids = micro[0]
         selfies_ids = micro[0]
-        caption_states = micro[1]
+        caption_state = micro[1]
         caption_mask = micro[2]
-        corrupted_tok_selfies = micro[3]
-        assert corrupted_tok_selfies.shape == selfies_ids.shape
+        corrupted_selfies_ids = micro[3]
+        assert corrupted_selfies_ids.shape == selfies_ids.shape
 
         #########################################
         mix_ids = torch.where(
-            t.reshape(-1, 1) < 400, corrupted_tok_selfies, tok_selfies
+            t.reshape(-1, 1) < 400, corrupted_selfies_ids, selfies_ids
         )
         if t.max() > self.maxt:
             self.maxt = t.max()
             print("Recieving max t:{}".format(self.maxt))
         ##########################################
-        # torch.tensor([0]).to('cuda')
         x_start_mean = model.model.module.get_embeds(selfies_ids)
         mix_start_mean = model.model.module.get_embeds(mix_ids)
-        # torch.tensor([0]).to('cuda')
-        # print(x_start_mean.device)
+
         std = _extract_into_tensor(
             self.sqrt_one_minus_alphas_cumprod,
             torch.tensor([0]).to(x_start_mean.device),
             x_start_mean.shape,
         )
-        # print(std.shape, )
-        # x_start_log_var = 2 * torch.log(std)
+
         x_start = self.get_x_start(x_start_mean, std)
         mix_start = self.get_x_start(mix_start_mean, std)
-        # print(x_start_mean.shape, x_start.shape)
+
         if noise is None:
             noise = torch.randn_like(mix_start)
         x_t = self.q_sample(mix_start, t, noise=noise)  # reparametrization trick.
@@ -1488,10 +1350,8 @@ class GaussianDiffusion:
             self.loss_type == LossType.E2E_MSE
             or self.loss_type == LossType.E2E_RESCALED_MSE
         ):
-            # print(x_t.shape)
-            # model_output = model(x_t, self._scale_timesteps(t))
             model_output = model(
-                x_t, self._scale_timesteps(t), caption_states, caption_mask
+                x_t, self._scale_timesteps(t), caption_state, caption_mask
             )
 
             if self.model_var_type in [

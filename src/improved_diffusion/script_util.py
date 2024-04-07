@@ -1,9 +1,9 @@
 import argparse
-import inspect
 
 from . import gaussian_diffusion as gd
 from .respace import SpacedDiffusion, space_timesteps
-from .unet import SuperResModel, UNetModel
+
+# from .unet import SuperResModel
 
 NUM_CLASSES = 1000
 
@@ -43,106 +43,106 @@ def model_and_diffusion_defaults():
     )
 
 
-def sr_model_and_diffusion_defaults():
-    res = model_and_diffusion_defaults()
-    res["large_size"] = 256
-    res["small_size"] = 64
-    arg_names = inspect.getfullargspec(sr_create_model_and_diffusion)[0]
-    for k in res.copy().keys():
-        if k not in arg_names:
-            del res[k]
-    return res
+# def sr_model_and_diffusion_defaults():
+#     res = model_and_diffusion_defaults()
+#     res["large_size"] = 256
+#     res["small_size"] = 64
+#     arg_names = inspect.getfullargspec(sr_create_model_and_diffusion)[0]
+#     for k in res.copy().keys():
+#         if k not in arg_names:
+#             del res[k]
+#     return res
 
 
-def sr_create_model_and_diffusion(
-    large_size,
-    small_size,
-    class_cond,
-    learn_sigma,
-    num_channels,
-    num_res_blocks,
-    num_heads,
-    num_heads_upsample,
-    attention_resolutions,
-    dropout,
-    diffusion_steps,
-    noise_schedule,
-    timestep_respacing,
-    use_kl,
-    predict_xstart,
-    rescale_timesteps,
-    rescale_learned_sigmas,
-    use_checkpoint,
-    use_scale_shift_norm,
-):
-    model = sr_create_model(
-        large_size,
-        small_size,
-        num_channels,
-        num_res_blocks,
-        learn_sigma=learn_sigma,
-        class_cond=class_cond,
-        use_checkpoint=use_checkpoint,
-        attention_resolutions=attention_resolutions,
-        num_heads=num_heads,
-        num_heads_upsample=num_heads_upsample,
-        use_scale_shift_norm=use_scale_shift_norm,
-        dropout=dropout,
-    )
-    diffusion = create_gaussian_diffusion(
-        steps=diffusion_steps,
-        learn_sigma=learn_sigma,
-        noise_schedule=noise_schedule,
-        use_kl=use_kl,
-        predict_xstart=predict_xstart,
-        rescale_timesteps=rescale_timesteps,
-        rescale_learned_sigmas=rescale_learned_sigmas,
-        timestep_respacing=timestep_respacing,
-    )
-    return model, diffusion
+# def sr_create_model_and_diffusion(
+#     large_size,
+#     small_size,
+#     class_cond,
+#     learn_sigma,
+#     num_channels,
+#     num_res_blocks,
+#     num_heads,
+#     num_heads_upsample,
+#     attention_resolutions,
+#     dropout,
+#     diffusion_steps,
+#     noise_schedule,
+#     timestep_respacing,
+#     use_kl,
+#     predict_xstart,
+#     rescale_timesteps,
+#     rescale_learned_sigmas,
+#     use_checkpoint,
+#     use_scale_shift_norm,
+# ):
+#     model = sr_create_model(
+#         large_size,
+#         small_size,
+#         num_channels,
+#         num_res_blocks,
+#         learn_sigma=learn_sigma,
+#         class_cond=class_cond,
+#         use_checkpoint=use_checkpoint,
+#         attention_resolutions=attention_resolutions,
+#         num_heads=num_heads,
+#         num_heads_upsample=num_heads_upsample,
+#         use_scale_shift_norm=use_scale_shift_norm,
+#         dropout=dropout,
+#     )
+#     diffusion = create_gaussian_diffusion(
+#         steps=diffusion_steps,
+#         learn_sigma=learn_sigma,
+#         noise_schedule=noise_schedule,
+#         use_kl=use_kl,
+#         predict_xstart=predict_xstart,
+#         rescale_timesteps=rescale_timesteps,
+#         rescale_learned_sigmas=rescale_learned_sigmas,
+#         timestep_respacing=timestep_respacing,
+#     )
+#     return model, diffusion
 
 
-def sr_create_model(
-    large_size,
-    small_size,
-    num_channels,
-    num_res_blocks,
-    learn_sigma,
-    class_cond,
-    use_checkpoint,
-    attention_resolutions,
-    num_heads,
-    num_heads_upsample,
-    use_scale_shift_norm,
-    dropout,
-):
-    _ = small_size  # hack to prevent unused variable
+# def sr_create_model(
+#     large_size,
+#     small_size,
+#     num_channels,
+#     num_res_blocks,
+#     learn_sigma,
+#     class_cond,
+#     use_checkpoint,
+#     attention_resolutions,
+#     num_heads,
+#     num_heads_upsample,
+#     use_scale_shift_norm,
+#     dropout,
+# ):
+#     _ = small_size  # hack to prevent unused variable
 
-    if large_size == 256:
-        channel_mult = (1, 1, 2, 2, 4, 4)
-    elif large_size == 64:
-        channel_mult = (1, 2, 3, 4)
-    else:
-        raise ValueError(f"unsupported large size: {large_size}")
+#     if large_size == 256:
+#         channel_mult = (1, 1, 2, 2, 4, 4)
+#     elif large_size == 64:
+#         channel_mult = (1, 2, 3, 4)
+#     else:
+#         raise ValueError(f"unsupported large size: {large_size}")
 
-    attention_ds = []
-    for res in attention_resolutions.split(","):
-        attention_ds.append(large_size // int(res))
+#     attention_ds = []
+#     for res in attention_resolutions.split(","):
+#         attention_ds.append(large_size // int(res))
 
-    return SuperResModel(
-        in_channels=3,
-        model_channels=num_channels,
-        out_channels=(3 if not learn_sigma else 6),
-        num_res_blocks=num_res_blocks,
-        attention_resolutions=tuple(attention_ds),
-        dropout=dropout,
-        channel_mult=channel_mult,
-        num_classes=(NUM_CLASSES if class_cond else None),
-        use_checkpoint=use_checkpoint,
-        num_heads=num_heads,
-        num_heads_upsample=num_heads_upsample,
-        use_scale_shift_norm=use_scale_shift_norm,
-    )
+#     return SuperResModel(
+#         in_channels=3,
+#         model_channels=num_channels,
+#         out_channels=(3 if not learn_sigma else 6),
+#         num_res_blocks=num_res_blocks,
+#         attention_resolutions=tuple(attention_ds),
+#         dropout=dropout,
+#         channel_mult=channel_mult,
+#         num_classes=(NUM_CLASSES if class_cond else None),
+#         use_checkpoint=use_checkpoint,
+#         num_heads=num_heads,
+#         num_heads_upsample=num_heads_upsample,
+#         use_scale_shift_norm=use_scale_shift_norm,
+#     )
 
 
 def create_gaussian_diffusion(

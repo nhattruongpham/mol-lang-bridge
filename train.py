@@ -1,5 +1,6 @@
-import argparse
 import os
+import torch
+import argparse
 from src.improved_diffusion import gaussian_diffusion as gd
 from src.improved_diffusion.respace import SpacedDiffusion
 from src.improved_diffusion import dist_util
@@ -11,12 +12,16 @@ from src.improved_diffusion.train_util import TrainLoop
 from transformers import set_seed
 import torch.distributed as dist
 import wandb
-from src.scripts.mytokenizers import get_tokenizer
+from src.scripts.mytokenizers import Tokenizer
 from src.scripts.mydatasets import get_dataloader, Lang2molDataset
 import warnings
 import torch.multiprocessing as mp
+from accelerate import Accelerator
+
 
 warnings.filterwarnings("ignore")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+accelerator = Accelerator(cpu=device == "cpu")
 
 
 def main_worker(rank, world_size):
@@ -31,9 +36,9 @@ def main_worker(rank, world_size):
     # print(wandb.config)
 
     # dist_util.setup_dist(rank, world_size)
-    tokenizer = get_tokenizer()
+    tokenizer = Tokenizer()
     model = TransformerNetModel(
-        in_channels=args.model_in_channels,  # 3, DEBUG**
+        in_channels=args.model_in_channels,
         model_channels=args.model_model_channels,
         dropout=args.model_dropout,
         vocab_size=len(tokenizer),
@@ -41,6 +46,7 @@ def main_worker(rank, world_size):
         num_attention_heads=args.model_num_attention_heads,
         num_hidden_layers=args.model_num_hidden_layers,
     )
+    model.train()
 
     print("Total params:", sum(p.numel() for p in model.parameters()))
     print(
@@ -67,11 +73,13 @@ def main_worker(rank, world_size):
         dir="dataset",
         tokenizer=tokenizer,
         split="train",
-        replace_desc=False,
         corrupt_prob=0.0,
     )
-    print("In total", len(train_dataset), "for training....")
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
+
+    model, tokenizer, diffusion, dataloader = accelerator.prepare(
+        model, tokenizer, diffusion, dataloader
+    )
 
     data_valid = None
     TrainLoop(
@@ -148,7 +156,7 @@ def create_argparser():
         resume_checkpoint="",
         save_interval=10000,
         schedule_sampler="uniform",
-        seed=19991009,
+        seed=42,
         sigma_small=False,
         timestep_respacing="",
         training_mode="e2e",

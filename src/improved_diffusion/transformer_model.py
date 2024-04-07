@@ -41,7 +41,7 @@ class TransformerNetModel(nn.Module):
         self.lm_head = nn.Linear(self.in_channels, vocab_size)
         self.lm_head.weight = self.word_embedding.weight
 
-        self.desc_down_proj = nn.Sequential(
+        self.caption_down_proj = nn.Sequential(
             linear(768, hidden_size),
             SiLU(),
             linear(hidden_size, hidden_size),
@@ -114,7 +114,7 @@ class TransformerNetModel(nn.Module):
         else:
             raise NotImplementedError
 
-    def forward(self, x, timesteps, desc_state, desc_mask, y=None):
+    def forward(self, x, timesteps, caption_state, caption_mask, y=None):
         """
         Apply the model to an input batch.
 
@@ -127,9 +127,13 @@ class TransformerNetModel(nn.Module):
 
         ################################################################
         if self.mask:
-            desc_state = torch.where(timesteps.reshape(-1, 1, 1) < 200, 0.0, desc_state)
-            assert len(desc_mask.shape) == 2
-            desc_mask = torch.where(timesteps.reshape(-1, 1) < 200, 1.0, desc_mask)
+            caption_state = torch.where(
+                timesteps.reshape(-1, 1, 1) < 200, 0.0, caption_state
+            )
+            assert len(caption_mask.shape) == 2
+            caption_mask = torch.where(
+                timesteps.reshape(-1, 1) < 200, 1.0, caption_mask
+            )
         #################################################################
 
         emb_x = self.input_up_proj(x)
@@ -142,12 +146,14 @@ class TransformerNetModel(nn.Module):
         )
         emb_inputs = self.dropout(self.LayerNorm(emb_inputs))
 
-        desc_state = self.dropout(self.LayerNorm(self.desc_down_proj(desc_state)))
+        caption_state = self.dropout(
+            self.LayerNorm(self.caption_down_proj(caption_state))
+        )
 
         input_trans_hidden_states = self.input_transformers(
             emb_inputs,
-            encoder_hidden_states=desc_state,
-            encoder_attention_mask=desc_mask,
+            encoder_hidden_states=caption_state,
+            encoder_attention_mask=caption_mask,
         ).last_hidden_state
         h = self.output_down_proj(input_trans_hidden_states)
         h = h.type(x.dtype)
