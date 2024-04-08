@@ -60,3 +60,4 @@ with torch.no_grad():
                     args.data_dir, args.split + f"caption_states_{i-4999}_{i}.pt"
                 ),
             )
+            volume = {}
