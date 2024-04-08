@@ -70,15 +70,18 @@ class Lang2molDataset(Dataset):
         return torch.load(file_path)
 
     def create_data(self):
-        dataset = (
-            load_dataset(
+        try:
+            dataset = load_dataset(
                 "ndhieunguyen/LPM-24",
                 token=True,
                 split=self.split,
-            )
-            .sort("id")
-            .select([i for i in range(100)])
-        )
+            ).sort("id")
+        except:
+            dataset = load_dataset(
+                "ndhieunguyen/LPM-24",
+                use_auth_token=True,
+                split=self.split,
+            ).sort("id")
 
         return [
             (int(sample_id), sample_selfies, sample_caption)
