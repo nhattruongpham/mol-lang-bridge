@@ -64,9 +64,9 @@ class SimMIM(nn.Module):
         x_rec = self.decoder(z)
 
         mask = mask.repeat_interleave(self.patch_size, 1).repeat_interleave(self.patch_size, 2).unsqueeze(1).contiguous()
-        loss_recon = F.mse_loss(x, x_rec, reduction='none')
+        loss_recon = F.l1_loss(x, x_rec, reduction='none')
         loss = (loss_recon * mask).sum() / (mask.sum() + 1e-5) / self.in_chans
-        return loss
+        return x_rec, mask, loss
 
     @torch.jit.ignore
     def no_weight_decay(self):

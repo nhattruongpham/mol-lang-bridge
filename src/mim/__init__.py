@@ -5,13 +5,21 @@ from torch.utils.data import DataLoader
 def build_loader_simmim(args):
     transform = SimMIMTransform(args)
 
-    dataset = ImageFolder(args.data_path, transform)
+    train_dataset = ImageFolder(args.train_data_path, transform)
+    valid_dataset = ImageFolder(args.valid_data_path, transform)
     
-    dataloader = DataLoader(dataset, 
+    train_dataloader = DataLoader(train_dataset, 
                             args.batch_size, 
                             num_workers=args.num_workers,
                             pin_memory=True, 
                             drop_last=True, 
                             collate_fn=collate_fn)
     
-    return dataloader
+    val_dataloader = DataLoader(valid_dataset, 
+                            args.batch_size, 
+                            num_workers=args.num_workers,
+                            pin_memory=True, 
+                            drop_last=True, 
+                            collate_fn=collate_fn)
+    
+    return train_dataloader, val_dataloader

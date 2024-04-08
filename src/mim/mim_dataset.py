@@ -47,7 +47,6 @@ class MaskGenerator:
         return WEIGHTS / np.sum(WEIGHTS)
         
     def __call__(self, input_image):
-        print(self._get_img_weights(input_image).flatten())
         mask_idx = np.random.choice(
             self.token_count, size=self.mask_count, p=self._get_img_weights(input_image).flatten(), replace=False
         )
