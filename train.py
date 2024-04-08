@@ -83,6 +83,7 @@ def main_worker(rank, world_size):
 
     data_valid = None
     TrainLoop(
+        rank="cpu",
         model=model,
         diffusion=diffusion,
         data=dataloader,
@@ -111,7 +112,7 @@ def create_argparser():
     text_defaults = dict(
         wandb_token="e7ec68f70281e418d89a918a45859f150aef9405",
         attention_resolutions="16,8",
-        batch_size=64,
+        batch_size=2,
         cache_mode="no",
         checkpoint_path="checkpoints",
         class_cond=False,

@@ -41,6 +41,7 @@ class TrainLoop:
         log_interval,
         save_interval,
         resume_checkpoint,
+        rank,
         use_fp16=False,
         fp16_scale_growth=1e-3,
         schedule_sampler=None,
@@ -54,7 +55,7 @@ class TrainLoop:
         # rank = dist.get_rank()
         # world_size = dist.get_world_size()
         # print("initialing Trainer for", rank, "/", world_size)
-        # self.rank = rank
+        self.rank = rank
         world_size = 1
         self.world_size = world_size
         self.diffusion = diffusion
@@ -89,7 +90,7 @@ class TrainLoop:
         print("checkpoint_path:{}".format(checkpoint_path))
         self.checkpoint_path = checkpoint_path  # DEBUG **
 
-        # self.model = model.to(rank)
+        self.model = model.to(rank)
 
         # self._load_and_sync_parameters()
         # if self.use_fp16:
@@ -238,7 +239,7 @@ class TrainLoop:
                     self.ddp_model,
                     micro,
                     t,
-                    model_kwargs=micro_cond,
+                    micro_cond,
                 )
 
                 if last_batch or not self.use_ddp:
@@ -275,7 +276,7 @@ class TrainLoop:
                 self.ddp_model,
                 micro,
                 t,
-                model_kwargs=None,
+                None,
             )
 
             if last_batch or not self.use_ddp:

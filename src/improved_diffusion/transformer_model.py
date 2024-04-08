@@ -30,6 +30,8 @@ class TransformerNetModel(nn.Module):
         config.num_hidden_layers = num_hidden_layers
         config.max_position_embeddings = 512
         config.layer_norm_eps = 1e-12
+        config.vocab_size = vocab_size
+        config.d_model = hidden_size
 
         self.hidden_size = hidden_size
         self.mask = mask
@@ -61,6 +63,7 @@ class TransformerNetModel(nn.Module):
         )
 
         self.input_transformers = T5EncoderModel(config)
+        # self.input_transformers = T5Model(config)
 
         self.register_buffer(
             "position_ids", torch.arange(config.max_position_embeddings).expand((1, -1))
@@ -150,8 +153,8 @@ class TransformerNetModel(nn.Module):
             self.LayerNorm(self.caption_down_proj(caption_state))
         )
 
-        input_trans_hidden_states = self.input_transformers(
-            emb_inputs,
+        input_trans_hidden_states = self.input_transformers.encoder(
+            inputs_embeds=emb_inputs,
             encoder_hidden_states=caption_state,
             encoder_attention_mask=caption_mask,
         ).last_hidden_state
