@@ -77,9 +77,9 @@ def main_worker(rank, world_size):
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
 
-    model, tokenizer, diffusion, dataloader = accelerator.prepare(
-        model, tokenizer, diffusion, dataloader
-    )
+    # model, tokenizer, diffusion, dataloader = accelerator.prepare(
+    #     model, tokenizer, diffusion, dataloader
+    # )
 
     data_valid = None
     TrainLoop(
