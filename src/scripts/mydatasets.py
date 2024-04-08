@@ -99,7 +99,15 @@ class Lang2molDataset(Dataset):
     def __getitem__(self, idx):
         data = self.ori_data[idx]
         sample = {"id": data[0], "selfies": self.permute(data[1]), "caption": data[2]}
-        sample["selfies_ids"] = self.tokenizer(sample["selfies"]).input_ids
+        sample["selfies_ids"] = self.tokenizer(
+            sample["selfies"],
+            max_length=512,
+            truncation=True,
+            padding="max_length",
+            add_special_tokens=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        ).input_ids
         sample["corrupted_selfies_ids"] = sample["selfies_ids"]
         # TODO: uncomment this
         # sample["corrupted_selfies_ids"] = (
