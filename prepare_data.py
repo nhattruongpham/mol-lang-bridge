@@ -53,4 +53,10 @@ with torch.no_grad():
             "mask": attention_mask,
         }
 
-torch.save(volume, os.path.join(args.data_dir, args.split + "_caption_states.pt"))
+        if (i + 1) % 5000 == 0:
+            torch.save(
+                volume,
+                os.path.join(
+                    args.data_dir, args.split + f"caption_states_{i-4999}_{i}.pt"
+                ),
+            )
