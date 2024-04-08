@@ -1322,7 +1322,7 @@ class GaussianDiffusion:
         )
         if t.max() > self.maxt:
             self.maxt = t.max()
-            print("Recieving max t:{}".format(self.maxt))
+            # print("Recieving max t:{}".format(self.maxt))
         ##########################################
         # print(f"Model dir: {dir(model)}")
         x_start_mean = model.model.get_embeds(selfies_ids)

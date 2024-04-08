@@ -52,11 +52,9 @@ class TrainLoop:
         eval_data=None,
         eval_interval=-1,
     ):
-        # rank = dist.get_rank()
-        # world_size = dist.get_world_size()
-        # print("initialing Trainer for", rank, "/", world_size)
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
         self.rank = rank
-        world_size = 1
         self.world_size = world_size
         self.diffusion = diffusion
         self.data = data
@@ -64,7 +62,6 @@ class TrainLoop:
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr * world_size
-        print("ori lr:", lr, "new lr:", self.lr)
         self.ema_rate = (
             [ema_rate]
             if isinstance(ema_rate, float)
@@ -83,40 +80,24 @@ class TrainLoop:
 
         self.step = 0
         self.resume_step = 0
-        # self.global_batch = self.batch_size * dist.get_world_size()
+        self.global_batch = self.batch_size * dist.get_world_size()
 
         self.lg_loss_scale = INITIAL_LOG_LOSS_SCALE
         self.sync_cuda = torch.cuda.is_available()
-        print("checkpoint_path:{}".format(checkpoint_path))
-        self.checkpoint_path = checkpoint_path  # DEBUG **
+        self.checkpoint_path = checkpoint_path
 
         self.model = model.to(rank)
-
-        # self._load_and_sync_parameters()
-        # if self.use_fp16:
-        #     self._setup_fp16()
 
         if torch.cuda.is_available():  # DEBUG **
             self.use_ddp = True
             self.ddp_model = DDP(
                 self.model,
                 device_ids=[self.rank],
-                # device_ids=[dist_util.dev()],
-                # output_device=dist_util.dev(),
-                # broadcast_buffers=False,
-                # bucket_cap_mb=128,
                 find_unused_parameters=False,
             )
         else:
-            # assert False
             self.ddp_model = model.to("cpu")
-            # if dist.get_world_size() > 1:
-            #     logger.warn(
-            #         "Distributed training requires CUDA. "
-            #         "Gradients will not be synchronized properly!"
-            #     )
-            # self.use_ddp = False
-            # self.ddp_model = self.model
+
         self.model_params = list(self.ddp_model.parameters())
         self.master_params = self.model_params
         self.opt = AdamW(self.master_params, lr=self.lr, weight_decay=self.weight_decay)
@@ -182,12 +163,12 @@ class TrainLoop:
         self.model.convert_to_fp16()
 
     def run_loop(self):
-        pbar = tqdm(maxinterval=self.lr_anneal_steps // self.world_size)
+        pbar = tqdm(total=self.lr_anneal_steps // self.world_size)
         while (
             not self.lr_anneal_steps
             or self.step + self.resume_step < self.lr_anneal_steps // self.world_size
         ):
-            pbar.set_description(f"{self.step + self.resume_step}")
+            pbar.set_description(f"Step: {self.step + self.resume_step}")
             batch = next(self.data)
             # if self.step<3:
             #     print("RANK:",self.rank,"STEP:",self.step,"BATCH:",batch)
@@ -208,6 +189,7 @@ class TrainLoop:
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                     return
             self.step += 1
+            pbar.update(self.step)
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
