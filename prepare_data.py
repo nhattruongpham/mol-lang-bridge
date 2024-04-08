@@ -47,7 +47,7 @@ with torch.no_grad():
         )
         input_ids = output["input_ids"]
         attention_mask = output["attention_mask"]
-        last_hidden_state = model(input_ids=input_ids).last_hidden_state
+        last_hidden_state = model(input_ids=input_ids.to(device)).last_hidden_state
         volume[id] = {
             "states": last_hidden_state.to("cpu"),
             "mask": attention_mask,
