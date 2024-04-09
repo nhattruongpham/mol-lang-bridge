@@ -5,6 +5,7 @@ import selfies as sf
 from datasets import load_dataset
 from rdkit import Chem
 from torch.utils.data import DistributedSampler, DataLoader, Dataset
+import glob
 
 
 def get_dataloader(dataset, batchsize, rank, world_size):
@@ -66,8 +67,11 @@ class Lang2molDataset(Dataset):
         self.caption_state = self.get_caption_state() if load_state else None
 
     def get_caption_state(self):
-        file_path = os.path.join(self.dir, self.split + "_caption_states.pt")
-        return torch.load(file_path)
+        all_caption_state = []
+        file_paths = glob.glob(os.path.join(self.dir, "*_caption_states.pt"))
+        for file_path in file_paths:
+            all_caption_state.append(torch.load(file_path))
+        return torch.cat(all_caption_state, dim=0)
 
     def create_data(self):
         try:
