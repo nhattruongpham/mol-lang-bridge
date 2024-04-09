@@ -38,7 +38,6 @@ class TransformerNetModel(nn.Module):
         self.in_channels = in_channels  # 16
         self.model_channels = model_channels  # 128
         self.dropout = dropout
-        self.logits_mode = 1
         self.word_embedding = nn.Embedding(vocab_size, self.in_channels)
         self.lm_head = nn.Linear(self.in_channels, vocab_size)
         self.lm_head.weight = self.word_embedding.weight
@@ -94,28 +93,7 @@ class TransformerNetModel(nn.Module):
         return self.deep_head(hidden_repr)
 
     def get_logits(self, hidden_repr):
-        if self.logits_mode == 1:
-            return self.lm_head(hidden_repr)
-        elif self.logits_mode == 2:
-            text_emb = hidden_repr
-            emb_norm = (self.lm_head.weight**2).sum(-1).view(-1, 1)  # vocab
-            text_emb_t = torch.transpose(
-                text_emb.view(-1, text_emb.size(-1)), 0, 1
-            )  # d, bsz*seqlen
-            arr_norm = (text_emb**2).sum(-1).view(-1, 1)  # bsz*seqlen, 1
-            dist = (
-                emb_norm
-                + arr_norm.transpose(0, 1)
-                - 2.0 * torch.mm(self.lm_head.weight, text_emb_t)
-            )  # (vocab, d) x (d, bsz*seqlen)
-            scores = torch.sqrt(torch.clamp(dist, 0.0, np.inf)).view(
-                emb_norm.size(0), hidden_repr.size(0), hidden_repr.size(1)
-            )  # vocab, bsz*seqlen
-            scores = -scores.permute(1, 2, 0).contiguous()
-
-            return scores
-        else:
-            raise NotImplementedError
+        return self.lm_head(hidden_repr)
 
     def forward(self, x, timesteps, caption_state, caption_mask, y=None):
         """
