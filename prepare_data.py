@@ -2,10 +2,12 @@ import os
 import torch
 import argparse
 from tqdm import tqdm
-from transformers import T5EncoderModel
+from transformers import T5EncoderModel, set_seed
 
 from src.scripts.mydatasets import Lang2molDataset
 from src.scripts.mytokenizers import Tokenizer
+
+set_seed(42)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--split", required=True)
@@ -53,7 +55,7 @@ with torch.no_grad():
             "mask": attention_mask,
         }
 
-        if (i + 1) % 5000 == 0:
+        if (i + 1) % 5000 == 0 or i == len(dataset) - 1:
             torch.save(
                 volume,
                 os.path.join(

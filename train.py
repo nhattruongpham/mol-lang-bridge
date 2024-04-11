@@ -33,7 +33,6 @@ def main_worker(rank, world_size):
         project="DiffusionLMRegexAug",
         config=args.__dict__,
     )
-    print(wandb.config)
 
     dist_util.setup_dist(rank, world_size)
     tokenizer = Tokenizer()
