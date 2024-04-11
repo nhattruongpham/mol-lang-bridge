@@ -1325,8 +1325,12 @@ class GaussianDiffusion:
             # print("Recieving max t:{}".format(self.maxt))
         ##########################################
         # print(f"Model dir: {dir(model)}")
-        x_start_mean = model.model.get_embeds(selfies_ids)
-        mix_start_mean = model.model.get_embeds(mix_ids)
+        try:
+            x_start_mean = model.model.get_embeds(selfies_ids)
+            mix_start_mean = model.model.get_embeds(mix_ids)
+        except:
+            x_start_mean = model.model.module.get_embeds(selfies_ids)
+            mix_start_mean = model.model.module.get_embeds(mix_ids)
 
         std = _extract_into_tensor(
             self.sqrt_one_minus_alphas_cumprod,
@@ -1340,7 +1344,10 @@ class GaussianDiffusion:
         if noise is None:
             noise = torch.randn_like(mix_start)
         x_t = self.q_sample(mix_start, t, noise=noise)  # reparametrization trick.
-        get_logits = model.model.get_logits
+        try:
+            get_logits = model.model.get_logits
+        except:
+            get_logits = model.model.module.get_logits
 
         terms = {}
 
