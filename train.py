@@ -28,14 +28,14 @@ def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(args.seed)
 
-    # wandb.login(key=args.wandb_token)
-    # wandb.init(
-    #     project="DiffusionLMRegexAug",
-    #     config=args.__dict__,
-    # )
-    # print(wandb.config)
+    wandb.login(key=args.wandb_token)
+    wandb.init(
+        project="DiffusionLMRegexAug",
+        config=args.__dict__,
+    )
+    print(wandb.config)
 
-    # dist_util.setup_dist(rank, world_size)
+    dist_util.setup_dist(rank, world_size)
     tokenizer = Tokenizer()
     model = TransformerNetModel(
         in_channels=args.model_in_channels,
@@ -70,18 +70,13 @@ def main_worker(rank, world_size):
 
     print("Loading data...")
     train_dataset = Lang2molDataset(
-        dir="dataset",
+        dir=args.dataset_path,
         tokenizer=tokenizer,
         split="train",
         corrupt_prob=0.0,
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
 
-    # model, tokenizer, diffusion, dataloader = accelerator.prepare(
-    #     model, tokenizer, diffusion, dataloader
-    # )
-
-    data_valid = None
     TrainLoop(
         rank="cpu",
         model=model,
@@ -101,7 +96,7 @@ def main_worker(rank, world_size):
         lr_anneal_steps=args.lr_anneal_steps,
         checkpoint_path=args.checkpoint_path,
         gradient_clipping=args.gradient_clipping,
-        eval_data=data_valid,
+        eval_data=None,
         eval_interval=args.eval_interval,
     ).run_loop()
     dist.destroy_process_group()
@@ -119,6 +114,7 @@ def create_argparser():
         config="ll",
         config_name="bert-base-uncased",
         data_dir="",
+        dataset_path="dataset",
         dataset_config_name="wikitext-2-raw-v1",
         dataset_name="wikitext",
         diffusion_steps=2000,
