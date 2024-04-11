@@ -106,7 +106,7 @@ def create_argparser():
     text_defaults = dict(
         wandb_token="e7ec68f70281e418d89a918a45859f150aef9405",
         attention_resolutions="16,8",
-        batch_size=2,
+        batch_size=64,
         cache_mode="no",
         checkpoint_path="checkpoints",
         class_cond=False,
@@ -132,7 +132,7 @@ def create_argparser():
         log_interval=20,
         logits_mode=1,
         lr=0.0001,
-        lr_anneal_steps=20,
+        lr_anneal_steps=100000,
         microbatch=-1,
         modality="e2e-tgt",
         model_arch="transformer",
