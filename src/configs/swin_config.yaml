@@ -6,7 +6,7 @@ depths: [ 2, 2, 18, 2 ]
 num_heads: [ 4, 8, 16, 32 ]
 drop_path_rate: 0.1
 window_size: 12
-use_checkpoint: True
+use_checkpoint: False
 mask_patch_size: 32
 mask_ratio: 0.4
 num_classes: 0
