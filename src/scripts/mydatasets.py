@@ -67,11 +67,12 @@ class Lang2molDataset(Dataset):
         self.caption_state = self.get_caption_state() if load_state else None
 
     def get_caption_state(self):
-        all_caption_state = []
-        file_paths = glob.glob(os.path.join(self.dir, "*_caption_states.pt"))
+        file_paths = glob.glob(os.path.join(self.dir, "*_caption_states*.pt"))
+        all_caption_state = {}
         for file_path in file_paths:
-            all_caption_state.append(torch.load(file_path))
-        return torch.cat(all_caption_state, dim=0)
+            tmp = torch.load(file_path)
+            all_caption_state = {**all_caption_state, **tmp}
+        return all_caption_state
 
     def create_data(self):
         try:
