@@ -56,10 +56,14 @@ with torch.no_grad():
         }
 
         if (i + 1) % 5000 == 0 or i == len(dataset) - 1:
-            torch.save(
-                volume,
-                os.path.join(
+            if (i + 1) % 5000 == 0:
+                file_path = os.path.join(
                     args.data_dir, args.split + f"_caption_states_{i-4999}_{i}.pt"
-                ),
-            )
+                )
+            else:
+                file_path = os.path.join(
+                    args.data_dir,
+                    args.split + f"_caption_states_{(i // 5000)*5000}_{i}.pt",
+                )
+            torch.save(volume, file_path)
             volume = {}
