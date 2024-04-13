@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 import yaml
-from mim.mim_lightning import SwinMaskedImageModel
+from mim.mim_lightning import MaskedImageModel
 from mim import build_loader_simmim, set_seed
 import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
@@ -12,7 +12,7 @@ def main(args):
     train_dataloader, val_dataloader = build_loader_simmim(args)
     args.n_iter_per_epoch = len(train_dataloader) // args.grads_accum
     
-    swin_mim = SwinMaskedImageModel(args)
+    swin_mim = MaskedImageModel(args)
     
     ckpt_callback = ModelCheckpoint(
         dirpath='ckpt/',

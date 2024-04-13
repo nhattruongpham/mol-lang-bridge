@@ -8,7 +8,7 @@ from utils import inverse_images
 import cv2
 import torch
 
-class SwinMaskedImageModel(LightningModule):
+class MaskedImageModel(LightningModule):
     def __init__(self, args):
         super().__init__()
         self.model = build_mim_model(args)
