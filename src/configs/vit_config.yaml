@@ -11,3 +11,4 @@ mask_patch_size: 32
 mask_ratio: 0.6
 drop_path_rate: 0.1
 patch_size: 16
+num_classes: 0
