@@ -105,6 +105,8 @@ class SimMIMTransform:
         
         # min-max scaling
         WEIGHTS = (WEIGHTS - np.min(WEIGHTS)) / (np.max(WEIGHTS) - np.min(WEIGHTS))
+        
+        return WEIGHTS
     
     def __call__(self, img):
         
