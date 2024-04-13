@@ -1,12 +1,14 @@
 from argparse import ArgumentParser
 import yaml
 from mim.mim_lightning import SwinMaskedImageModel
-from mim import build_loader_simmim
+from mim import build_loader_simmim, set_seed
 import lightning as pl
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 
 def main(args):
+    set_seed(42) # Set seed to keep deterministic of the training
+    
     train_dataloader, val_dataloader = build_loader_simmim(args)
     args.n_iter_per_epoch = len(train_dataloader) // args.grads_accum
     

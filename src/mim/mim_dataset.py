@@ -20,7 +20,7 @@ class MaskGenerator:
         self.scale = self.mask_patch_size // self.model_patch_size
         
         self.token_count = self.rand_size ** 2
-        self.mask_count = int(np.ceil(self.token_count * self.mask_ratio))
+        # self.mask_count = int(np.ceil(self.token_count * self.mask_ratio))
         
     def _get_img_weights(self, input_image):
         C, H, W = input_image.shape
@@ -46,9 +46,10 @@ class MaskGenerator:
         
         return WEIGHTS / np.sum(WEIGHTS)
         
-    def __call__(self, input_image):
+    def __call__(self, input_image, mask_weight):
+        mask_count = int(np.ceil(np.sum(mask_weight > 0) * self.mask_ratio))
         mask_idx = np.random.choice(
-            self.token_count, size=self.mask_count, p=self._get_img_weights(input_image).flatten(), replace=False
+            self.token_count, size=mask_count, p=mask_weight.flatten(), replace=False
         )
         # mask_idx = np.random.permutation(self.token_count)[:self.mask_count]
         mask = np.zeros(self.token_count, dtype=int)
@@ -72,16 +73,44 @@ class SimMIMTransform:
  
         model_patch_size = args.patch_size
         
+        self.input_size = args.img_size
+        
         self.mask_generator = MaskGenerator(
             input_size=args.img_size,
             mask_patch_size=args.mask_patch_size,
             model_patch_size=model_patch_size,
             mask_ratio=args.mask_ratio
         )
+        
+    def generate_mask_weight(self, input_image):
+        input_image = input_image.resize(self.input_size)
+        input_image = torch.tensor(np.array(input_image), dtype=torch.float32)
+        input_image = torch.permute(input_image, (2, 0, 1))
+        C, H, W = input_image.shape
+        
+        WEIGHTS = np.zeros((H // self.mask_patch_size, W // self.mask_patch_size))
+        for y in range(H // self.mask_patch_size):
+            for x in range(W // self.mask_patch_size):
+                patch_left = x * self.mask_patch_size
+                patch_upper = y * self.mask_patch_size
+                patch_right = patch_left + self.mask_patch_size
+                patch_lower = patch_upper + self.mask_patch_size
+                
+                patch = T.functional.crop(input_image, patch_upper, patch_left, patch_lower-patch_upper, patch_right-patch_left)
+                
+                mean_value = torch.mean(patch)
+                
+                WEIGHTS[y,x] = 255.-mean_value
+        
+        # min-max scaling
+        WEIGHTS = (WEIGHTS - np.min(WEIGHTS)) / (np.max(WEIGHTS) - np.min(WEIGHTS))
     
     def __call__(self, img):
+        
+        mask_weight = self.generate_mask_weight(img)
+        
         img = self.transform_img(img)
-        mask = self.mask_generator(img)
+        mask = self.mask_generator(img, mask_weight)
         
         return img, mask
 
