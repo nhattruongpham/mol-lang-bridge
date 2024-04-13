@@ -74,6 +74,7 @@ class SimMIMTransform:
         model_patch_size = args.patch_size
         
         self.input_size = (args.img_size, args.img_size)
+        self.mask_patch_size = args.mask_patch_size
         
         self.mask_generator = MaskGenerator(
             input_size=args.img_size,
