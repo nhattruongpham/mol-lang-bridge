@@ -1,0 +1,13 @@
+pretrained_model_name_or_path: 'QizhiPei/biot5-base'
+multimodal:
+  n_attention_heads: 8
+  use_forget_gate: false
+  visual_feature_dim: 1536
+  text_feature_dim: 768
+  intermediate_dim: 256
+vision:
+  img_size: [224, 224]
+  num_classes: 0
+  embed_dim: 192
+  depths: [2,2,18,2]
+  num_heads: [6,12,24,48]

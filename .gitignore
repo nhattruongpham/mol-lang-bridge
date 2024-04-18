@@ -1,3 +1,4 @@
+src/weights
 my_dataset/
 lightning_logs/
 *.tsv
