@@ -1,5 +1,6 @@
 import lightning as pl
 from backbones.lang.t5 import T5ForMultimodalConditionalGeneration
+from transformers import RobertaModel, AutoTokenizer
 from backbones.vision.swin import SwinTransformer
 import torch
 from torch import optim
@@ -9,36 +10,49 @@ class T5MultimodalModel(pl.LightningModule):
     def __init__(self, args, tokenizer):
         super().__init__()
         self.args = args
+        self.tokenizer = tokenizer
         
+        # Initialize multimodal text-based model
         self.t5_model = T5ForMultimodalConditionalGeneration.from_pretrained(
-            args.pretrained_model_name_or_path,
+            args.t5.pretrained_model_name_or_path,
             n_attention_heads=args.multimodal.n_attention_heads,
+            use_visual_feature=args.multimodal.use_visual_feature,
+            use_smiles_feature=args.multimodal.use_smiles_feature,
             use_forget_gate=args.multimodal.use_forget_gate,
-            visual_feature_dim=args.multimodal.visual_feature_dim,
             text_feature_dim=args.multimodal.text_feature_dim,
+            visual_feature_dim=args.multimodal.visual_feature_dim,
+            smiles_feature_dim=args.multimodal.smiles_feature_dim,
             intermidate_dim=args.multimodal.intermediate_dim 
         )
         
-        self.visual_model = SwinTransformer(
-            img_size=args.vision.img_size,
+        # Initialize visual model
+        self.swin_model = SwinTransformer(
+            img_size=args.swin.img_size,
             num_classes=0,
-            embed_dim=args.vision.embed_dim,
-            depths=args.vision.depths,
-            num_heads=args.vision.num_heads
+            embed_dim=args.swin.embed_dim,
+            depths=args.swin.depths,
+            num_heads=args.swin.num_heads
         )
         
-        self.visual_model.load_state_dict(
-            torch.load(args.vision.pretrained_model_path)['encoder']
+        self.swin_model.load_state_dict(
+            torch.load(args.swin.pretrained_model_path)['encoder']
         )
         
-        self.visual_model.eval()
-        for p in self.visual_model.parameters():
+        self.swin_model.eval()
+        for p in self.swin_model.parameters():
             p.requires_grad = False
+            
+        # Initialize text model
+        self.roberta_model = RobertaModel.from_pretrained(args.roberta.pretrained_model_name_or_path)
+        self.roberta_model.eval()
+        for p in self.roberta_model.parameters():
+            p.requires_grad = False
+        
         
     def resize_token_embeddings(self, len_embeddings):
         self.model.resize_token_embeddings(len_embeddings)
     
-    def forward(self, input_ids, attention_mask, labels=None, image_features=None):
+    def forward(self, input_ids, attention_mask, labels=None, image_features=None, smiles_features=None):
         decoder_input_ids = labels[:, :-1].contiguous()
         decoder_target_ids = labels[:, 1:].clone().detach()
         decoder_target_ids[labels[:, 1:] == self.tokenizer.pad_token_id] = -100
@@ -48,7 +62,8 @@ class T5MultimodalModel(pl.LightningModule):
             attention_mask = attention_mask,
             decoder_input_ids = decoder_input_ids,
             labels = decoder_target_ids,
-            image_features=image_features
+            image_features=image_features,
+            smiles_features=smiles_features
         )
         
         return output.loss, output.logits
@@ -56,13 +71,17 @@ class T5MultimodalModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         input_ids = batch['input_ids']
         attention_mask = batch['attention_mask']
+        smiles_input_ids = batch['smiles_input_ids']
+        smiles_attention_mask = batch['smiles_attention_mask']
         labels = batch['labels']
         images = batch['images']
         
         with torch.no_grad():
-            image_features = self.visual_model.forward_features(images, avgpool=False)
+            image_features = self.swin_model.forward_features(images, avgpool=False)
+            smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
+                                                 attention_mask=smiles_attention_mask).last_hidden_state
         
-        loss, logits = self(input_ids, attention_mask, labels, image_features)
+        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features)
         
         self.log("train_loss", loss, prog_bar=True, logger=True)
         
@@ -71,13 +90,17 @@ class T5MultimodalModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
+        smiles_input_ids = batch['smiles_input_ids']
+        smiles_attention_mask = batch['smiles_attention_mask']
         labels = batch["labels"]
         images = batch['images']
         
         with torch.no_grad():
-            image_features = self.visual_model.forward_features(images, avgpool=False)
+            image_features = self.swin_model.forward_features(images, avgpool=False)
+            smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
+                                                 attention_mask=smiles_attention_mask).last_hidden_state
         
-        loss, logits = self(input_ids, attention_mask, labels, image_features)
+        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features)
         
         self.log('eval_loss', loss, prog_bar=True, logger=True)
         

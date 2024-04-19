@@ -1,9 +1,12 @@
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 from torchvision import datasets, transforms
+from transformers import AutoTokenizer
 
 class MultimodalMoleculeCaptioning(Dataset):
-    def __init__(self, tokenizer, 
+    def __init__(self,
+                 args,
+                 tokenizer,
                  dataset_name_or_path='ndhieunguyen/LPM-24', 
                  split='train',
                  input_max_length=256,
@@ -14,6 +17,8 @@ class MultimodalMoleculeCaptioning(Dataset):
         self.tokenizer = tokenizer
         self.input_max_length = input_max_length
         self.output_max_length = output_max_length
+        
+        self.roberta_tokenizer = AutoTokenizer.from_pretrained(args.roberta.pretrained_model_name_or_path)
         
         self.image_transform = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -48,15 +53,31 @@ class MultimodalMoleculeCaptioning(Dataset):
             return_tensors='pt'
         )
         
+        smiles_input = self.roberta_tokenizer(
+            sample['canonical'],
+            add_special_tokens=True,
+            max_length=256,
+            padding='max_length',
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt'
+        )
+        
         input_ids = input['input_ids'].flatten()
         attention_mask = input['attention_mask'].flatten()
         labels = output['input_ids'].flatten()
+        
+        smiles_input_ids = smiles_input['input_ids'].flatten()
+        smiles_attention_mask = smiles_input['attention_mask'].flatten()
         
         return {
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': attention_mask,
             'images': self.image_transform(sample['image'].convert('L').convert('RGB')),
+            'smiles_input_ids': smiles_input_ids,
+            'smiles_attention_mask': smiles_attention_mask,
+            'canonical': sample['canonical'],
             'selfies': sample['selfies'],
             'caption': sample['caption']
         }
