@@ -82,10 +82,11 @@ class MultimodalMoleculeCaptioning(Dataset):
             'caption': sample['caption']
         }
 
-def get_dataloaders(tokenizer, batch_size=8, num_workers=4, split='train'):
+def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train'):
     if split == 'train':
         return DataLoader(
             MultimodalMoleculeCaptioning(
+                args,
                 tokenizer=tokenizer,
                 split='train',
                 input_max_length=512,
@@ -99,6 +100,7 @@ def get_dataloaders(tokenizer, batch_size=8, num_workers=4, split='train'):
     elif split == 'validation':
         return DataLoader(
             MultimodalMoleculeCaptioning(
+                args,
                 tokenizer=tokenizer,
                 split='validation',
                 input_max_length=512,

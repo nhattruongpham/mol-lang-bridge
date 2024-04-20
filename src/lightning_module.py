@@ -50,7 +50,7 @@ class T5MultimodalModel(pl.LightningModule):
         
         
     def resize_token_embeddings(self, len_embeddings):
-        self.model.resize_token_embeddings(len_embeddings)
+        self.t5_model.resize_token_embeddings(len_embeddings)
     
     def forward(self, input_ids, attention_mask, labels=None, image_features=None, smiles_features=None):
         decoder_input_ids = labels[:, :-1].contiguous()
@@ -109,8 +109,8 @@ class T5MultimodalModel(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=3e-5)
         
-        max_iter = self.cfg.epochs * self.cfg.train_data_len
-        warmup_steps = int(max_iter * self.cfg.warmup_ratio)
+        max_iter = self.args.epochs * self.args.train_data_len
+        warmup_steps = int(max_iter * self.args.warmup_ratio)
         scheduler = {
             "scheduler": self.cosine_scheduler(optimizer, max_iter, warmup_steps),
             "name": "learning_rate",

@@ -6,6 +6,7 @@ from lightning_module import T5MultimodalModel
 from lightning.pytorch.callbacks import ModelCheckpoint
 from argparse import ArgumentParser, Namespace
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch import seed_everything
 import yaml
 
 def set_nested_attr(obj, key, value):
@@ -19,11 +20,12 @@ def set_nested_attr(obj, key, value):
         setattr(obj, key, value)
 
 def main(args):
+    seed_everything(42)
     device = torch.device('cuda' if args.cuda else 'cpu')
-    tokenizer = AutoTokenizer.from_pretrained(args.pretrained_model_name_or_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.t5.pretrained_model_name_or_path)
     tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>']) # Add greek symbol, <boc> is start_of_caption, <eoc> is end_of_caption
-    train_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
-    val_dataloader = get_dataloaders(tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
+    train_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
+    val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
     
     args.train_data_len = len(train_dataloader)
 
@@ -49,7 +51,8 @@ def main(args):
         devices=args.num_devices,
         precision=args.precision, # 32 if has more vram
         gradient_clip_val=10.0,
-        logger=[wandb_logger]
+        logger=[wandb_logger],
+        deterministic=True
     )
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
