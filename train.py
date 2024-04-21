@@ -16,13 +16,6 @@ from src.scripts.mytokenizers import Tokenizer
 from src.scripts.mydatasets import get_dataloader, Lang2molDataset
 import warnings
 import torch.multiprocessing as mp
-from accelerate import Accelerator
-
-
-warnings.filterwarnings("ignore")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-accelerator = Accelerator(cpu=device == "cpu")
-
 
 def main_worker(rank, world_size):
     args = create_argparser().parse_args()
@@ -75,9 +68,9 @@ def main_worker(rank, world_size):
         corrupt_prob=0.0,
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
-
+    print('Finish loading data')
+    
     TrainLoop(
-        rank="cpu",
         model=model,
         diffusion=diffusion,
         data=dataloader,
@@ -178,6 +171,6 @@ def create_argparser():
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICES_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     world_size = 1
     mp.spawn(main_worker, args=(world_size,), nprocs=world_size, join=True)

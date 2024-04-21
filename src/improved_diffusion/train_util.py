@@ -1,7 +1,6 @@
+import os
 import copy
 import functools
-import os
-
 import blobfile as bf
 import torch
 import torch.distributed as dist
@@ -21,9 +20,6 @@ from .resample import LossAwareSampler, UniformSampler
 import wandb
 from tqdm import tqdm
 
-# For ImageNet experiments, this was a good default value.
-# We found that the lg_loss_scale quickly climbed to
-# 20-21 within the first ~1K steps of training.
 INITIAL_LOG_LOSS_SCALE = 20.0
 
 
@@ -41,7 +37,6 @@ class TrainLoop:
         log_interval,
         save_interval,
         resume_checkpoint,
-        rank,
         use_fp16=False,
         fp16_scale_growth=1e-3,
         schedule_sampler=None,
@@ -52,6 +47,7 @@ class TrainLoop:
         eval_data=None,
         eval_interval=-1,
     ):
+        print('Initiating train loop')
         rank = dist.get_rank()
         world_size = dist.get_world_size()
         self.rank = rank
@@ -113,6 +109,7 @@ class TrainLoop:
             self.ema_params = [
                 copy.deepcopy(self.master_params) for _ in range(len(self.ema_rate))
             ]
+        print('Finish initiating train loop')
 
     def _load_and_sync_parameters(self):
         resume_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
@@ -164,6 +161,7 @@ class TrainLoop:
 
     def run_loop(self):
         pbar = tqdm(total=self.lr_anneal_steps // self.world_size)
+        print('Start running train loop')
         while (
             not self.lr_anneal_steps
             or self.step + self.resume_step < self.lr_anneal_steps // self.world_size
