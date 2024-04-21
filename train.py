@@ -171,6 +171,6 @@ def create_argparser():
 
 if __name__ == "__main__":
     os.environ["CUDA_DEVICES_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     world_size = 1
     mp.spawn(main_worker, args=(world_size,), nprocs=world_size, join=True)
