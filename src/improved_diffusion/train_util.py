@@ -86,11 +86,12 @@ class TrainLoop:
 
         if torch.cuda.is_available():  # DEBUG **
             self.use_ddp = True
-            self.ddp_model = DDP(
-                self.model,
-                device_ids=[self.rank],
-                find_unused_parameters=False,
-            )
+            self.ddp_model = self.model
+            # self.ddp_model = DDP(
+            #     self.model,
+            #     device_ids=[self.rank],
+            #     find_unused_parameters=False,
+            # )
         else:
             self.ddp_model = model.to("cpu")
 
