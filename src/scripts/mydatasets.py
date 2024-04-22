@@ -6,6 +6,7 @@ from datasets import load_dataset
 from rdkit import Chem
 from torch.utils.data import DistributedSampler, DataLoader, Dataset
 import glob
+from transformers import T5EncoderModel
 
 
 def get_dataloader(dataset, batchsize, rank, world_size):
@@ -130,6 +131,84 @@ class Lang2molDataset(Dataset):
 
         return sample
 
+class Lang2molDataset_2(Dataset):
+    def __init__(
+        self,
+        dir,
+        tokenizer,
+        split,
+        pre=None,
+        prob=0,
+        load_state=True,
+        corrupt_prob=0.4,
+    ):
+        super().__init__()
+        self.dir = dir
+        self.tokenizer = tokenizer
+        self.split = split
+        self.pre = pre
+        self.prob = prob
+        self.corrupt_prob = corrupt_prob
+        self.ori_data = self.create_data()
+        self.load_state = load_state
+        self.model = T5EncoderModel.from_pretrained('QizhiPei/biot5-base-text2mol')
+        self.model.to('cuda')
+        self.model.eval()
+
+    def create_data(self):
+        try:
+            dataset = load_dataset(
+                "ndhieunguyen/LPM-24",
+                token=True,
+                split=self.split,
+            ).sort("id")
+        except:
+            dataset = load_dataset(
+                "ndhieunguyen/LPM-24",
+                use_auth_token=True,
+                split=self.split,
+            ).sort("id")
+
+        return [
+            (int(sample_id), sample_selfies, sample_caption)
+            for (sample_id, sample_selfies, sample_caption) in zip(
+                dataset["id"], dataset["selfies"], dataset["caption"]
+            )
+        ]
+
+    def __len__(self):
+        return len(self.ori_data)
+
+    def permute(self, selfies):
+        if random.random() < self.prob:
+            return changeorder(selfies, shuffle=True)
+        else:
+            return selfies
+
+    def __getitem__(self, idx):
+        data = self.ori_data[idx]
+        sample = {"id": data[0], "selfies": self.permute(data[1]), "caption": data[2]}
+        output = self.tokenizer(
+            sample["selfies"],
+            max_length=512,
+            truncation=True,
+            padding="max_length",
+            add_special_tokens=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        )
+        sample["selfies_ids"] = output["input_ids"]
+        sample["corrupted_selfies_ids"] = sample["selfies_ids"]
+        # TODO: uncomment this
+        # sample["corrupted_selfies_ids"] = (
+        #     self.tokenizer.corrupt(sample["selfies"])
+        #     if random.random() < self.corrupt_prob
+        #     else sample["selfies_ids"]
+        # )
+        sample["caption_state"] = self.model(input_ids=output["input_ids"].to('cuda'), attention_mask=output["attention_mask"].to('cuda')).last_hidden_state
+        sample["caption_mask"] = output["attention_mask"]
+
+        return sample
 
 def changeorder(selfies, shuffle):
     smiles = sf.encoder(selfies)

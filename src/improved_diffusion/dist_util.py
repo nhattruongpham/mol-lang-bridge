@@ -23,7 +23,6 @@ def setup_dist(rank, world_size, port="12145"):
     """
     Setup a distributed process group.
     """
-    print("IN AUG DIST setup")
     if dist.is_initialized():
         return
 
