@@ -8,6 +8,7 @@ from argparse import ArgumentParser, Namespace
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch import seed_everything
 import yaml
+import os
 
 def set_nested_attr(obj, key, value):
     if isinstance(value, dict):
@@ -42,7 +43,10 @@ def main(args):
         mode='min'
     )
     
-    wandb_logger = WandbLogger(log_model=False)
+    wandb_logger = WandbLogger(log_model=False,
+                               project='ACL_Mol2Lang',
+                               name=os.path.splitext(os.path.basename(args.model_config))[0]
+                            )
 
     trainer = pl.Trainer(
         callbacks=[ckpt_callback],
@@ -67,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_devices', type=int, default=1)
     parser.add_argument('--warmup_ratio', type=int, default=0.1)
     parser.add_argument('--precision', type=str, default='32')
-    parser.add_argument('--model_config', type=str, default='src/configs/config.yaml')
+    parser.add_argument('--model_config', type=str, default='src/configs/config_use_v_nofg.yaml')
     
     args = parser.parse_args()
     model_config = yaml.safe_load(open(args.model_config, 'r'))

@@ -1,6 +1,24 @@
 # mol-lang-bridge
 Language and Molecules Translation for Scientific Insight and Discovery
 
+## Fine-tuning multimodal BioT5 on LPM-24 dataset
+```zsh
+python src/main.py --epochs 100 --batch_size 8 --cuda --model_config path/to/model/config
+```
+
+`path/to/model/config` could be one of these:
+- `src/configs/config_use_s_nofg.yaml`
+- `src/configs/config_use_s_yesfg.yaml`
+- `src/configs/config_use_v_nofg.yaml` (default)
+- `src/configs/config_use_v_yesfg.yaml`
+- `src/configs/config_use_vs_nofg.yaml`
+- `src/configs/config_use_vs_yesfg.yaml`
+
+Explanation:
+- `use_v`: use visual feature, `use_s`: use SMILES feature, `use_vs`: using both.
+- `nofg`: not use forget gate after cross-attention between 2 features. `yesfg`: otherwise.
+
+
 ## Fine-tuning baseline BioT5 on LPM-24 dataset
 1. Setup environments
 ```zsh
