@@ -118,26 +118,20 @@ class T5MultimodalModel(pl.LightningModule):
         }
         return [optimizer], [scheduler]
     
-    def generate(self, input_selfies):
+    def generate(self, input_ids, image_features, decoder_start_token_id):
         generation_config = self.model.generation_config
         generation_config.max_length = 512
         generation_config.num_beams = 1
-        decoder_start_token_id = self.tokenizer.decode('<soc>')[0]
         
-        inputs = self.tokenizer(
-            input_selfies,
-            return_tensors='pt'
-        )
-        
-        outputs = self.model.generate(
-            input_ids = inputs['input_ids'],
+        outputs = self.t5_model.generate(
+            input_ids = input_ids['input_ids'],
+            image_features=image_features,
             decoder_start_token_id=decoder_start_token_id,
             generation_config=generation_config
         )
         
-        return [self.tokenizer.decode(o, skip_special_tokens=True) for o in outputs]
+        return outputs
         
-    
     @staticmethod
     def cosine_scheduler(optimizer, training_steps, warmup_steps):
         def lr_lambda(current_step):
