@@ -112,7 +112,7 @@ def main():
     sample = cands.indices
     sample = sample.squeeze(-1)
     print(sample)
-    tokenizer = Tokenizer(max_len=args.ml)
+    tokenizer = Tokenizer()
     c = tokenizer.decode(sample)
     with open(args.outputdir, "w") as f:
         for i, x in enumerate(c):
