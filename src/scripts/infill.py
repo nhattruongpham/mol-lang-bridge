@@ -28,7 +28,7 @@ from infill_util import langevin_fn3, get_score, langevin_fn3_compose, langevin_
 from spacy.lang.en import English
 
 def main():
-    set_seed(101)
+    set_seed(42)
     args = create_argparser().parse_args()
 
     # load configurations.
@@ -626,7 +626,7 @@ def main():
         result_dict = {}
         if not diffusion.training_mode.startswith('e2e'):
             logger.log('decode by rounding. ')
-            set_seed(101)
+            set_seed(42)
             model, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel,
                                            os.path.split(args.model_path)[0])
 
@@ -686,7 +686,7 @@ def main():
         else:
             logger.log('decode by rounding. ')
             print('load_models')
-            set_seed(101)
+            set_seed(42)
             print(os.path.split(args.model_path)[0])
             model, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel, os.path.split(args.model_path)[0])
             print('rounding')

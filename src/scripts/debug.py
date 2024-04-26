@@ -25,7 +25,7 @@ from transformers import set_seed
 from functools import partial
 
 def main():
-    set_seed(101)
+    set_seed(42)
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
@@ -239,7 +239,7 @@ def main():
             np.savez(out_path, arr)
 
     print('load_models')
-    set_seed(101)
+    set_seed(42)
     logger.log('decode by rounding. ')
     model, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel,
                                    os.path.split(args.model_path)[0])

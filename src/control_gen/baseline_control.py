@@ -33,7 +33,7 @@ def remove_leaves(tree_):
 
 def main():
     args = create_argparser().parse_args()
-    set_seed(108)
+    set_seed(42)
 
     # toy1 = 'START Alimentum is not a family - friendly place , located in city centre . \n END'.split()
     # toy1 = 'START Located in riverside area , Alimentum restaurant is a place to bring the whole family . \n END'.split()

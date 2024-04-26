@@ -19,7 +19,7 @@ import torch.multiprocessing as mp
 
 def main_worker(rank, world_size):
     args = create_argparser().parse_args()
-    set_seed(args.seed)
+    set_seed(42)
 
     wandb.login(key=args.wandb_token)
     wandb.init(

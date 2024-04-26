@@ -22,7 +22,7 @@ from transformers import set_seed
 from improved_diffusion.test_util import get_weights, denoised_fn_round, compute_logp, load_results
 
 def main():
-    set_seed(101)
+    set_seed(42)
     args = create_argparser().parse_args()
 
     # load configurations.

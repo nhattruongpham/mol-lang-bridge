@@ -1,6 +1,7 @@
 import argparse
 import torch
 from transformers import set_seed
+import os
 from src.scripts.mytokenizers import Tokenizer
 from src.improved_diffusion import gaussian_diffusion as gd
 from src.improved_diffusion.respace import SpacedDiffusion
@@ -14,7 +15,7 @@ from src.improved_diffusion.script_util import (
 
 
 def main():
-    set_seed(121)
+    set_seed(42)
     args = create_argparser().parse_args()
 
     logger.configure()
@@ -196,4 +197,5 @@ def create_argparser():
 
 
 if __name__ == "__main__":
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     main()
