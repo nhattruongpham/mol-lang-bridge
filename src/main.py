@@ -9,16 +9,7 @@ from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch import seed_everything
 import yaml
 import os
-
-def set_nested_attr(obj, key, value):
-    if isinstance(value, dict):
-        if not hasattr(obj, key):
-            setattr(obj, key, Namespace())
-        
-        for subkey in value:
-            set_nested_attr(getattr(obj, key), subkey, value[subkey])
-    else:
-        setattr(obj, key, value)
+from utils import set_nested_attr
 
 def main(args):
     seed_everything(42)
@@ -29,13 +20,15 @@ def main(args):
     val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
     
     args.train_data_len = len(train_dataloader)
+    args.tokenizer = Namespace()
+    args.tokenizer.pad_token_id = tokenizer.pad_token_id
 
-    model = T5MultimodalModel(args, tokenizer=tokenizer)
+    model = T5MultimodalModel(args)
     model.resize_token_embeddings(len(tokenizer)) ## Resize due to adding new tokens
     model.to(device)
 
     ckpt_callback = ModelCheckpoint(
-        dirpath='ckpt/',
+        dirpath=args.output_folder,
         filename='ckpt_{eval_loss}',
         save_top_k=3,
         verbose=True,
@@ -69,9 +62,11 @@ if __name__ == "__main__":
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--num_devices', type=int, default=1)
+    parser.add_argument('--lr', type=float, default=3e-5)
     parser.add_argument('--warmup_ratio', type=int, default=0.1)
     parser.add_argument('--precision', type=str, default='32')
     parser.add_argument('--model_config', type=str, default='src/configs/config_use_v_nofg.yaml')
+    parser.add_argument('--output_folder', type=str, default='ckpt/')
     
     args = parser.parse_args()
     model_config = yaml.safe_load(open(args.model_config, 'r'))
