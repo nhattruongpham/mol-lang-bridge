@@ -199,12 +199,6 @@ class Lang2molDataset_2(Dataset):
         )
         sample["selfies_ids"] = output["input_ids"]
         sample["corrupted_selfies_ids"] = sample["selfies_ids"]
-        # TODO: uncomment this
-        # sample["corrupted_selfies_ids"] = (
-        #     self.tokenizer.corrupt(sample["selfies"])
-        #     if random.random() < self.corrupt_prob
-        #     else sample["selfies_ids"]
-        # )
         sample["caption_state"] = self.model(input_ids=output["input_ids"].to('cuda'), attention_mask=output["attention_mask"].to('cuda')).last_hidden_state
         sample["caption_mask"] = output["attention_mask"]
 

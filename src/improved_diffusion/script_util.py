@@ -37,7 +37,7 @@ def model_and_diffusion_defaults():
         out_channel=8,
         training_mode="emb",
         vocab_size=66,
-        config_name="bert-base-uncased",
+        config_name="QizhiPei/biot5-base-text2mol",
         experiment_mode="lm",
         logits_mode=1,
     )

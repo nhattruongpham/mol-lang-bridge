@@ -8,15 +8,17 @@ from src.improved_diffusion import dist_util, logger
 from src.improved_diffusion.transformer_model import TransformerNetModel
 from src.improved_diffusion import dist_util, logger
 from src.scripts.mytokenizers import Tokenizer
-from src.scripts.mydatasets import Lang2molDataset
+from src.scripts.mydatasets import Lang2molDataset_2
 from src.improved_diffusion.script_util import (
     model_and_diffusion_defaults,
     add_dict_to_argparser,
 )
+import os
 
+os.system(f"huggingface-cli login --token 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")
 
 def main():
-    set_seed(121)
+    set_seed(42)
     args = create_argparser().parse_args()
 
     # dist_util.setup_dist()
@@ -29,15 +31,22 @@ def main():
 
     tokenizer = Tokenizer()
     model = TransformerNetModel(
-        in_channels=32,  # 3, DEBUG**
-        model_channels=128,
-        dropout=0.1,
+        in_channels=args.model_in_channels,  # 3, DEBUG**
+        model_channels=args.model_model_channels,
+        dropout=args.model_dropout,
         vocab_size=len(tokenizer),
-        hidden_size=1024,
-        num_attention_heads=16,
-        num_hidden_layers=12,
+        hidden_size=args.model_hidden_size,
+        num_attention_heads=args.model_num_attention_heads,
+        num_hidden_layers=args.model_num_hidden_layers,
     )
     model.eval()
+
+    print("Total params:", sum(p.numel() for p in model.parameters()))
+    print(
+        "Total trainable params:",
+        sum(p.numel() for p in model.parameters() if p.requires_grad),
+    )
+    print("Tokenizer vocab length:", len(tokenizer))
 
     diffusion = SpacedDiffusion(
         use_timesteps=[i for i in range(0, 2000, 10)],
@@ -70,13 +79,13 @@ def main():
     print("loading {} set".format(args.split))
     print("--" * 30)
 
-    valid_dataset = Lang2molDataset(
-        dir="dataset",
+    valid_dataset = Lang2molDataset_2(
+        dir=args.dataset_path,
         tokenizer=tokenizer,
-        split="valid",
+        split=args.split,
         corrupt_prob=0.0,
     )
-    print("DATASETINFO-----------------------------")
+    print("DATASET INFO -----------------------------")
     print(len(valid_dataset), (valid_dataset[0]["caption_state"].shape))
     caption = [
         (
@@ -87,8 +96,6 @@ def main():
         for i in range(args.num_samples)
     ]
     answer = [i[2] for i in caption]
-    model3 = torch.nn.Parameter(model.word_embedding.weight.clone().cpu())
-    model3.requires_grad = False
 
     allsample = []
     num_done = 0
@@ -165,13 +172,20 @@ def create_argparser():
         modality="text",
         dataset_name="wikitext",
         dataset_config_name="wikitext-2-raw-v1",
-        model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
+        dataset_path='dataset',
+        # model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
         experiment="gpt2_pre_compress",
         model_arch="trans-unet",
+        model_in_channels=32,
+        model_model_channels=128,
+        model_dropout=0.1,
+        model_hidden_size=1024,
+        model_num_attention_heads=16,
+        model_num_hidden_layers=12,
         preprocessing_num_workers=1,
         emb_scale_factor=1.0,
         clamp="clamp",
-        split="test",
+        split="validation",
         model_path="../../checkpoints/PLAIN_ema_0.9999_200000.pt",
         use_ddim=False,
         batch_size=64,

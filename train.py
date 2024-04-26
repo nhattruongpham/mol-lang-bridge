@@ -104,7 +104,7 @@ def create_argparser():
         checkpoint_path="checkpoints",
         class_cond=False,
         config="ll",
-        config_name="bert-base-uncased",
+        config_name="QizhiPei/biot5-base-text2mol",
         data_dir="",
         dataset_path="dataset",
         dataset_config_name="wikitext-2-raw-v1",
