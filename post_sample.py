@@ -27,15 +27,15 @@ def main():
 
     tokenizer = Tokenizer(max_len=args.ml)
     model = TransformerNetModel(
-        in_channels=32,
-        model_channels=128,
-        dropout=0.1,
+        in_channels=args.model_in_channels,
+        model_channels=args.model_model_channels,
+        dropout=args.model_dropout,
         vocab_size=len(tokenizer),
-        experiment_mode="lm",
-        hidden_size=1024,
-        num_attention_heads=16,
-        num_hidden_layers=12,
+        hidden_size=args.model_hidden_size,
+        num_attention_heads=args.model_num_attention_heads,
+        num_hidden_layers=args.model_num_hidden_layers,
     )
+    model.eval()
     diffusion = SpacedDiffusion(
         use_timesteps=[i for i in range(0, 400, 20)],
         betas=gd.get_named_beta_schedule("sqrt", 2000),
