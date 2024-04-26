@@ -119,7 +119,7 @@ class T5MultimodalModel(pl.LightningModule):
         return [optimizer], [scheduler]
     
     def generate(self, input_ids, image_features, decoder_start_token_id):
-        generation_config = self.model.generation_config
+        generation_config = self.t5_model.generation_config
         generation_config.max_length = 512
         generation_config.num_beams = 1
         
