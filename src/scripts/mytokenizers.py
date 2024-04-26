@@ -215,8 +215,13 @@ class Tokenizer:
             res[-1] = 2
         return torch.LongTensor([res])
 
-    def decode(self, sample):
+    def decode_one(self, sample):
         return self.tokenizer.decode(sample)
+
+    def decode(self, sample_list):
+        if len(sample_list.shape)==1:
+            return [self.decode_one(sample_list)]
+        return [self.decode_one(sample) for sample in sample_list]
 
 if __name__ == "__main__":
     import selfies as sf
