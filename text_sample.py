@@ -99,7 +99,7 @@ def main():
         sample_fn = (
             diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         )
-        sample_shape = (idend - num_done, 256, model.in_channels)
+        sample_shape = (idend - num_done, 512, model.in_channels)
         print(sample_shape)
         sample = sample_fn(
             model,
