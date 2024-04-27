@@ -21,7 +21,6 @@ def model_and_diffusion_defaults():
         attention_resolutions="16,8",
         dropout=0.0,
         learn_sigma=False,
-        sigma_small=False,
         class_cond=False,
         diffusion_steps=1000,
         noise_schedule="linear",
@@ -149,7 +148,6 @@ def create_gaussian_diffusion(
     *,
     steps=1000,
     learn_sigma=False,
-    sigma_small=False,
     noise_schedule="linear",  # sqrt
     use_kl=False,
     predict_xstart=False,  # True

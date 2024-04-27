@@ -146,7 +146,6 @@ def create_argparser():
         save_interval=1000,
         schedule_sampler="uniform",
         seed=42,
-        sigma_small=False,
         timestep_respacing="",
         training_mode="e2e",
         use_bert_tokenizer="no",

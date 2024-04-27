@@ -19,13 +19,12 @@ def main():
     args = create_argparser().parse_args()
 
     logger.configure()
-    args.sigma_small = True
 
     if args.experiment == "random1":
         args.experiment = "random"
-    logger.log("creating model and diffusion...")
+    logger.log("Creating model and diffusion...")
 
-    tokenizer = Tokenizer(max_len=args.ml)
+    tokenizer = Tokenizer()
     model = TransformerNetModel(
         in_channels=args.model_in_channels,
         model_channels=args.model_model_channels,
@@ -53,13 +52,11 @@ def main():
     )
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
-    logger.log(f"the parameter count is {pytorch_total_params}")
-
-    print(diffusion.rescale_timesteps, "a marker for whether we are in the debug mode")
+    logger.log(f"Number of params: {pytorch_total_params}")
     model.to(dist_util.dev())
-    model.eval()  # DEBUG
+    model.eval()
 
-    logger.log("sampling...")
+    logger.log("Sampling...")
 
     with open("tempbadmols.txt") as f:
         content = [l.strip().split() for l in f.readlines()]
@@ -120,7 +117,7 @@ def main():
                 print(x)
             f.write(orders[i] + "\t" + x.replace("[PAD]", "") + "\n")
 
-    with open("../../textguidtry_256_final.txt") as f:
+    with open("textguidtry_256_final.txt") as f:
         content = [k.strip().split("   ||   ") for k in f.readlines()]
     with open(args.outputdir) as f:
         tochange = [k.strip().split() for k in f.readlines()]
@@ -134,22 +131,22 @@ def main():
             continue
         content[int(num)][0] = smiles
         changecnt += 1
-    with open("../../tempoutput.txt", "w") as f:
+    with open("tempoutput.txt", "w") as f:
         for c in content:
             f.write(c[0] + "   ||   " + c[1] + "\n")
     print("Repaired {}".format(changecnt))
-    with open("../../tempoutput.txt") as f:
+    with open("tempoutput.txt") as f:
         x = f.readlines()
     output = [
         i.strip().split("   ||   ")[0].replace("[SOS]", "").replace("[EOS]", "")
         for i in x
     ]
-    with open("../../datasets/SMILES/test.txt") as f:
+    with open("datasets/SMILES/test.txt") as f:
         x = f.readlines()[1:]
     ground = [i.strip().split("\t")[1] for i in x if len(i) > 3]
     description = [i.strip().split("\t")[2] for i in x if len(i) > 3]
     assert len(output) == len(ground) == len(description)
-    with open("../../MODELOUTPUT.txt", "w") as f:
+    with open("MODELOUTPUT.txt", "w") as f:
         f.write("description\tground truth\toutput\n")
         for i in range(len(output)):
             f.write(description[i] + "\t" + ground[i] + "\t" + output[i])
@@ -160,34 +157,35 @@ def main():
 def create_argparser():
     defaults = dict(
         clip_denoised=False,
-        num_samples=50,  # 10000,
         batch_size=64,
         use_ddim=False,
         mbr_sample=1,
         model_path="",
         model_arch="conv-unet",
         verbose="yes",
-        out_dir="diffusion_lm/src.improved_diffusion/out_gen",
     )
     text_defaults = dict(
         modality="text",
         dataset_name="wikitext",
         dataset_config_name="wikitext-2-raw-v1",
-        model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
         experiment="gpt2_pre_compress",
         model_arch="trans-unet",
+        model_in_channels=32,
+        model_model_channels=128,
+        model_dropout=0.1,
+        model_hidden_size=1024,
+        model_num_attention_heads=16,
+        model_num_hidden_layers=12,
         preprocessing_num_workers=1,
         emb_scale_factor=1.0,
         clamp="clamp",
-        split="test",
-        model_path="../../correction_checkpoints/PLAIN_ema_0.9999_200000.pt",
+        split="validation",
+        model_path="correction_checkpoints/PLAIN_ema_0.9999_200000.pt",
         use_ddim=False,
-        ml=256,
-        batch_size=64,
-        num_samples=3300,
+        batch_size=8,
+        num_samples=10,
         top_p=1.0,
-        out_dir="generation_outputs",
-        outputdir="../../tempregeneratebad.txt",
+        outputdir="tempregeneratebad.txt",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)

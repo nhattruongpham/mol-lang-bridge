@@ -23,15 +23,14 @@ def main():
 
     # dist_util.setup_dist()
     logger.configure()
-    args.sigma_small = True
 
     if args.experiment == "random1":
         args.experiment = "random"
-    logger.log("creating model and diffusion...")
+    logger.log("Creating model and diffusion...")
 
     tokenizer = Tokenizer()
     model = TransformerNetModel(
-        in_channels=args.model_in_channels,  # 3, DEBUG**
+        in_channels=args.model_in_channels,  
         model_channels=args.model_model_channels,
         dropout=args.model_dropout,
         vocab_size=len(tokenizer),
@@ -40,14 +39,6 @@ def main():
         num_hidden_layers=args.model_num_hidden_layers,
     )
     model.eval()
-
-    print("Total params:", sum(p.numel() for p in model.parameters()))
-    print(
-        "Total trainable params:",
-        sum(p.numel() for p in model.parameters() if p.requires_grad),
-    )
-    print("Tokenizer vocab length:", len(tokenizer))
-
     diffusion = SpacedDiffusion(
         use_timesteps=[i for i in range(0, 2000, 10)],
         betas=gd.get_named_beta_schedule("sqrt", 2000),
@@ -65,18 +56,14 @@ def main():
     )
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
-    logger.log(f"the parameter count is {pytorch_total_params}")
-
-    # diffusion.rescale_timesteps = False  # DEBUG --> REMOVE
-    print(diffusion.rescale_timesteps, "a marker for whether we are in the debug mode")
+    logger.log(f"Number of params: {pytorch_total_params}")
     model.to(dist_util.dev())
-    model.eval()  # DEBUG
+    model.eval()
 
-    logger.log("sampling...")
+    logger.log("Sampling...")
     print(args.num_samples)
-    # model3 = get_weights(model2, args)
     print("--" * 30)
-    print("loading {} set".format(args.split))
+    print(f"Loading {args.split} set")
     print("--" * 30)
 
     valid_dataset = Lang2molDataset_2(
@@ -85,8 +72,9 @@ def main():
         split=args.split,
         corrupt_prob=0.0,
     )
-    print("DATASET INFO -----------------------------")
-    print(len(valid_dataset), (valid_dataset[0]["caption_state"].shape))
+    print("-------------------- DATASET INFO --------------------")
+    print(f'Size: {len(valid_dataset)} samples')
+    print(f'Sample shape: {valid_dataset[0]["caption_state"].shape}')
     caption = [
         (
             valid_dataset[i]["caption_state"],
@@ -106,7 +94,7 @@ def main():
         caption_mask = torch.concat([i[1] for i in caption[num_done:idend]], dim=0)
 
         model_kwargs = {}
-        print("use_ddim:{}", args.use_ddim)
+        print(f"Use DDIM: {args.use_ddim}")
         sample_fn = (
             diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         )
@@ -124,6 +112,7 @@ def main():
         )
         allsample.append(sample)
         num_done = idend
+        
     sample = torch.concat(allsample, dim=0)
     print("decoding for e2e")
     print(sample.shape)
@@ -159,21 +148,18 @@ def main():
 def create_argparser():
     defaults = dict(
         clip_denoised=False,
-        num_samples=50,  # 10000,
         batch_size=64,
         use_ddim=False,
         mbr_sample=1,
         model_path="",
         model_arch="conv-unet",
         verbose="yes",
-        out_dir="diffusion_lm/src.improved_diffusion/out_gen",
     )
     text_defaults = dict(
         modality="text",
         dataset_name="wikitext",
         dataset_config_name="wikitext-2-raw-v1",
         dataset_path='dataset',
-        # model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
         experiment="gpt2_pre_compress",
         model_arch="trans-unet",
         model_in_channels=32,
@@ -186,13 +172,12 @@ def create_argparser():
         emb_scale_factor=1.0,
         clamp="clamp",
         split="validation",
-        model_path="../../checkpoints/PLAIN_ema_0.9999_200000.pt",
+        model_path="checkpoints/PLAIN_ema_0.9999_200000.pt",
         use_ddim=False,
-        batch_size=64,
-        num_samples=3300,
+        batch_size=8,
+        num_samples=10,
         top_p=1.0,
-        out_dir="generation_outputs",
-        outputdir="../../textguidtry_256_final.txt",
+        outputdir="textguidtry_256_final.txt",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)

@@ -45,7 +45,6 @@ def main():
     if args.modality == 'roc-aug':
         args.modality = 'roc'
     # DEBUG
-    args.sigma_small = True
     dist_util.setup_dist()
     logger.configure()
 

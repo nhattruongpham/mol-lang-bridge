@@ -12,6 +12,7 @@ RDLogger.DisableLog('rdApp.*')
 from fcd import get_fcd, load_ref_model, canonical_smiles
 import warnings
 warnings.filterwarnings('ignore')
+
 def get_smis(filepath):
     print(filepath)
     with open(filepath) as f:
