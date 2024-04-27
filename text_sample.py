@@ -14,6 +14,7 @@ from src.improved_diffusion.script_util import (
     add_dict_to_argparser,
 )
 import os
+import selfies as sf
 
 os.system(f"huggingface-cli login --token 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")
 
@@ -116,9 +117,7 @@ def main():
     sample = torch.concat(allsample, dim=0)
     print("decoding for e2e")
     print(sample.shape)
-    x_t = torch.tensor(sample).cuda()
-    reshaped_x_t = x_t
-    logits = model.get_logits(reshaped_x_t)  # bsz, seqlen, vocab
+    logits = model.get_logits(torch.tensor(sample).cuda())  # bsz, seqlen, vocab
     cands = torch.topk(logits, k=1, dim=-1)
     sample = cands.indices
     sample = sample.squeeze(-1)
@@ -128,21 +127,19 @@ def main():
     c = tokenizer.decode(sample)
     with open(args.outputdir, "w") as f:
         for i, x in enumerate(c):
-            if i == 0:
-                print(x)
-            f.write(x.replace("[PAD]", "") + "   ||   " + answer[i] + "\n")
+            f.write(sf.decoder(x.replace("<PAD>", "")) + "   ||   " + sf.decoder(answer[i]) + "\n")
 
-    with open(args.outputdir) as f:
-        allsmiles = [
-            k.strip().split("||")[0].strip().replace("[EOS]", "").replace("[SOS]", "")
-            for k in f.readlines()
-        ]
-    f = open("tempbadmols.txt", "w")
-    for cnt, s in enumerate(allsmiles):
-        mol = Chem.MolFromSmiles(s)
-        if mol is None:
-            f.write(str(cnt) + "\t" + s + "\n")
-    f.close()
+    # with open(args.outputdir) as f:
+    #     allsmiles = [
+    #         k.strip().split("||")[0].strip().replace("[EOS]", "").replace("[SOS]", "")
+    #         for k in f.readlines()
+    #     ]
+    # f = open("tempbadmols.txt", "w")
+    # for cnt, s in enumerate(allsmiles):
+    #     mol = Chem.MolFromSmiles(s)
+    #     if mol is None:
+    #         f.write(str(cnt) + "\t" + s + "\n")
+    # f.close()
 
 
 def create_argparser():
