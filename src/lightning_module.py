@@ -102,6 +102,9 @@ class T5MultimodalModel(pl.LightningModule):
         labels = batch["labels"]
         images = batch['images']
         
+        image_features = None
+        smiles_features = None
+        
         with torch.no_grad():
             if self.args.multimodal.use_visual_feature:
                 image_features = self.swin_model.forward_features(images, avgpool=False)
