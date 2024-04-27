@@ -157,7 +157,7 @@ def create_argparser():
         dataset_name="wikitext",
         dataset_config_name="wikitext-2-raw-v1",
         dataset_path='dataset',
-        experiment="gpt2_pre_compress",
+        experiment="random",
         model_arch="trans-unet",
         model_in_channels=32,
         model_model_channels=128,
@@ -178,7 +178,6 @@ def create_argparser():
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
-    # defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser
