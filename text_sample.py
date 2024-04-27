@@ -127,7 +127,7 @@ def main():
     c = tokenizer.decode(sample)
     with open(args.outputdir, "w") as f:
         for i, x in enumerate(c):
-            f.write(sf.decoder(x.replace("<PAD>", "")) + "   ||   " + sf.decoder(answer[i]) + "\n")
+            f.write(sf.decoder(x.replace("<pad>", "").replace('</s>', '')) + "   ||   " + sf.decoder(answer[i]) + "\n")
 
     # with open(args.outputdir) as f:
     #     allsmiles = [
