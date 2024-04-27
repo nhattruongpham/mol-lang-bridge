@@ -174,7 +174,7 @@ def create_argparser():
         batch_size=8,
         num_samples=10,
         top_p=1.0,
-        outputdir="textguidtry_256_final.txt",
+        outputdir="output.txt",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)

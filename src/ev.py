@@ -101,7 +101,7 @@ def fcdevaluate(qgt_smis,qop_smis):
     fcd_sim_score = get_fcd(canon_gt_smis, canon_ot_smis, model)
     return fcd_sim_score
 
-gt,op = get_smis('tempoutput.txt')
+gt,op = get_smis('output.txt')
 bleu_score, exact_match_score, levenshtein_score,_  = evaluate(gt,op)
 validity_score, maccs_sims_score, rdk_sims_score, morgan_sims_score = fevaluate(gt,op)
 fcd_metric_score = fcdevaluate(gt,op)
