@@ -5,7 +5,9 @@ from lightning_module import T5MultimodalModel
 from dataset_module import get_dataloaders
 from transformers import AutoTokenizer
 import torch
-from translation_metrics import Mol2Text_translation
+from tqdm import tqdm
+import csv
+import os
 
 def postprocess_text(caption):
     caption = caption[5:]
@@ -19,7 +21,7 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.t5.pretrained_model_name_or_path)
     tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>']) # Add greek symbol, <boc> is start_of_caption, <eoc> is end_of_caption
     
-    val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
+    val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=4, split='validation')
     
     args.tokenizer = Namespace()
     args.tokenizer.pad_token_id = tokenizer.pad_token_id
@@ -29,24 +31,27 @@ def main(args):
     model.to(device)
     
     model.load_state_dict(
-        torch.load(args.checkpoint_path, map_location=device)['state_dict']
+        torch.load(args.checkpoint_path, map_location=device)['state_dict'], strict=False
     )
     
-    evaluator = Mol2Text_translation()
+    os.makedirs(os.path.dirname(args.output_csv), exist_ok=True) 
     
-    all_gt_captions = []
-    all_pred_captions = []
-    
-    for batch in val_dataloader:
-        outputs = model.generate_captioning(batch)
+    with open(args.output_csv, 'w') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=['selfies', 'gt_caption', 'pred_caption'])
+        writer.writeheader()
         
-        gt_captions = batch['caption'].detach().cpu().tolist()
-        pred_captions = [postprocess_text(c) for c in tokenizer.batch_decode(outputs, skip_special_tokens=True)]
-        
-        all_gt_captions.extend(gt_captions)
-        all_pred_captions.extend(pred_captions)
-        
-    print(evaluator(all_pred_captions, all_gt_captions))
+        for idx, batch in enumerate(tqdm(val_dataloader)):
+            batch = {k:v.to('cuda') if isinstance(v, torch.Tensor) else v for k,v in batch.items()}
+            outputs = model.generate_captioning(batch, decoder_start_token_id=35076)
+            
+            gt_captions = batch['caption']
+            pred_captions = [postprocess_text(c) for c in tokenizer.batch_decode(outputs, skip_special_tokens=True)]
+            
+            writer.writerows([
+                {'selfies': selfies,
+                 'gt_caption': gt_caption,
+                 'pred_caption': pred_caption} for selfies, gt_caption, pred_caption in  zip(batch['selfies'], gt_captions, pred_captions)
+            ])
         
         
         
@@ -66,3 +71,5 @@ if __name__ == "__main__":
     model_config = yaml.safe_load(open(args.model_config, 'r'))
     for key, value in model_config.items():
         set_nested_attr(args, key, value)
+        
+    main(args)
