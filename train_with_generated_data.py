@@ -48,8 +48,8 @@ def main_worker(rank, world_size):
     print("Tokenizer vocab length:", len(tokenizer))
 
     diffusion = SpacedDiffusion(
-        use_timesteps=[i for i in range(2000)],
-        betas=gd.get_named_beta_schedule("sqrt", 2000),
+        use_timesteps=[i for i in range(args.diffusion_steps)],
+        betas=gd.get_named_beta_schedule("sqrt", args.diffusion_steps),
         model_mean_type=(gd.ModelMeanType.START_X),
         model_var_type=((gd.ModelVarType.FIXED_LARGE)),
         loss_type=gd.LossType.E2E_MSE,
