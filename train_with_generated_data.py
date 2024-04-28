@@ -38,7 +38,7 @@ def main_worker(rank, world_size):
         num_attention_heads=args.model_num_attention_heads,
         num_hidden_layers=args.model_num_hidden_layers,
     )
-    model.train()
+    # model.train()
 
     print("Total params:", sum(p.numel() for p in model.parameters()))
     print(

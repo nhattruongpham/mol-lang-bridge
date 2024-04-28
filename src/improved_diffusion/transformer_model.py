@@ -62,7 +62,9 @@ class TransformerNetModel(nn.Module):
         )
 
         self.input_transformers = T5EncoderModel(config)
-        # self.input_transformers = T5Model(config)
+        self.input_transformers.eval()
+        for param in self.input_transformers.parameters():
+            param.requires_grad = False
 
         self.register_buffer(
             "position_ids", torch.arange(config.max_position_embeddings).expand((1, -1))
