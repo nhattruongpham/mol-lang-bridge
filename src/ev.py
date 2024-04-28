@@ -11,6 +11,7 @@ from rdkit import DataStructs
 RDLogger.DisableLog('rdApp.*')
 from fcd import get_fcd, load_ref_model, canonical_smiles
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 def get_smis(filepath):
@@ -101,6 +102,7 @@ def fcdevaluate(qgt_smis,qop_smis):
     fcd_sim_score = get_fcd(canon_gt_smis, canon_ot_smis, model)
     return fcd_sim_score
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 gt,op = get_smis('output.txt')
 bleu_score, exact_match_score, levenshtein_score,_  = evaluate(gt,op)
 validity_score, maccs_sims_score, rdk_sims_score, morgan_sims_score = fevaluate(gt,op)
