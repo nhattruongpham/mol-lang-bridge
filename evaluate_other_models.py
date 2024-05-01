@@ -38,8 +38,10 @@ def main(args):
     if torch.cuda.is_available():
         os.environ['CUDA_VISIBLE_DEVICES'] = args.devices
         model = model.to('cuda')
+        print('Using cuda')
     else:
         model = model.to('cpu')
+        print('Using cpu')
     model.eval()
     generation_config = model.generation_config
     generation_config.max_length = 512
