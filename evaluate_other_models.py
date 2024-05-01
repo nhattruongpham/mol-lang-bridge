@@ -57,7 +57,7 @@ def main(args):
 
     final_result = []
     for input_ids, smiles, selfies in tqdm(eval_dataset, total=len(eval_dataset)):
-        outputs = model.generate(input_ids.to(device), generation_config=generation_config)
+        outputs = model.generate(input_ids.to(args.devices), generation_config=generation_config)
         output = tokenizer.decode(outputs[0], skip_special_tokens=True).replace(' ', '')
         if selfies:
             output = sf.decoder(output)
