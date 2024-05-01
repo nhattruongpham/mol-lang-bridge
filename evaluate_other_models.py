@@ -35,13 +35,13 @@ class EvalDataset():
 def main(args):
     tokenizer = T5Tokenizer.from_pretrained(args.pretrained_name)
     model = T5ForConditionalGeneration.from_pretrained(args.pretrained_name)
+    
     if torch.cuda.is_available():
         os.environ['CUDA_VISIBLE_DEVICES'] = args.devices
-        model = model.to('cuda')
-        print('Using cuda')
+        device = 'cuda'
     else:
-        model = model.to('cpu')
-        print('Using cpu')
+        device = 'cpu'
+    model = model.to(device)
     model.eval()
     generation_config = model.generation_config
     generation_config.max_length = 512
@@ -57,7 +57,7 @@ def main(args):
 
     final_result = []
     for input_ids, smiles, selfies in tqdm(eval_dataset, total=len(eval_dataset)):
-        outputs = model.generate(input_ids, generation_config=generation_config)
+        outputs = model.generate(input_ids.to(device), generation_config=generation_config)
         output = tokenizer.decode(outputs[0], skip_special_tokens=True).replace(' ', '')
         if selfies:
             output = sf.decoder(output)
