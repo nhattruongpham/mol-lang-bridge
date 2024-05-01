@@ -15,6 +15,9 @@ class EvalDataset():
         self.dataset = dataset
         self.tokenizer = tokenizer
         
+    def __len__(self):
+        return len(self.dataset)
+
     def __getitem__(self, index):
         sample = self.dataset[index]
         caption = sample['caption']
