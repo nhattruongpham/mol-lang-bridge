@@ -36,12 +36,12 @@ def main(args):
     tokenizer = T5Tokenizer.from_pretrained(args.pretrained_name)
     model = T5ForConditionalGeneration.from_pretrained(args.pretrained_name)
     
-    if torch.cuda.is_available():
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.devices
-        device = 'cuda'
-    else:
-        device = 'cpu'
-    model = model.to(device)
+    # if torch.cuda.is_available():
+    #     os.environ['CUDA_VISIBLE_DEVICES'] = args.devices
+    #     device = 'cuda'
+    # else:
+    #     device = 'cpu'
+    model = model.to(args.devices)
     model.eval()
     generation_config = model.generation_config
     generation_config.max_length = 512
