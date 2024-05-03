@@ -139,6 +139,7 @@ class Lang2molDataset_2(Dataset):
         dir,
         tokenizer,
         split,
+        dataset_name,
         pre=None,
         prob=0,
         load_state=True,
@@ -153,6 +154,7 @@ class Lang2molDataset_2(Dataset):
         self.prob = prob
         self.corrupt_prob = corrupt_prob
         self.token_max_length = token_max_length
+        self.dataset_name = dataset_name
         self.ori_data = self.create_data()
         self.load_state = load_state
         self.model = T5EncoderModel.from_pretrained('QizhiPei/biot5-base-text2mol')
@@ -162,13 +164,13 @@ class Lang2molDataset_2(Dataset):
     def create_data(self):
         try:
             dataset = load_dataset(
-                "ndhieunguyen/LPM-24",
+                self.dataset_name,
                 token=True,
                 split=self.split,
             ).sort("id")
         except:
             dataset = load_dataset(
-                "ndhieunguyen/LPM-24",
+                self.dataset_name,
                 use_auth_token=True,
                 split=self.split,
             ).sort("id")
