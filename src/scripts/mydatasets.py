@@ -141,6 +141,7 @@ class Lang2molDataset_2(Dataset):
         prob=0,
         load_state=True,
         corrupt_prob=0.4,
+        token_max_length=256,
     ):
         super().__init__()
         self.dir = dir
@@ -149,6 +150,7 @@ class Lang2molDataset_2(Dataset):
         self.pre = pre
         self.prob = prob
         self.corrupt_prob = corrupt_prob
+        self.token_max_length = token_max_length
         self.ori_data = self.create_data()
         self.load_state = load_state
         self.model = T5EncoderModel.from_pretrained('QizhiPei/biot5-base-text2mol')
@@ -188,19 +190,32 @@ class Lang2molDataset_2(Dataset):
     def __getitem__(self, idx):
         data = self.ori_data[idx]
         sample = {"id": data[0], "selfies": self.permute(data[1]), "caption": data[2]}
-        output = self.tokenizer(
+        
+        # Molecules
+        output_molecule = self.tokenizer(
             sample["selfies"],
-            max_length=512,
+            max_length=self.token_max_length,
             truncation=True,
             padding="max_length",
             add_special_tokens=True,
             return_tensors="pt",
             return_attention_mask=True,
         )
-        sample["selfies_ids"] = output["input_ids"]
+        sample["selfies_ids"] = output_molecule["input_ids"]
         sample["corrupted_selfies_ids"] = sample["selfies_ids"]
-        sample["caption_state"] = self.model(input_ids=output["input_ids"].to('cuda'), attention_mask=output["attention_mask"].to('cuda')).last_hidden_state
-        sample["caption_mask"] = output["attention_mask"]
+        
+        # Captions
+        output_caption = self.tokenizer(
+            sample["caption"],
+            max_length=self.token_max_length,
+            truncation=True,
+            padding="max_length",
+            add_special_tokens=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        )
+        sample["caption_state"] = self.model(input_ids=output_caption["input_ids"].to('cuda'), attention_mask=output_caption["attention_mask"].to('cuda')).last_hidden_state
+        sample["caption_mask"] = output_caption["attention_mask"]
 
         return sample
 

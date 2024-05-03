@@ -66,6 +66,7 @@ def main_worker(rank, world_size):
         tokenizer=tokenizer,
         split="train",
         corrupt_prob=0.0,
+        token_max_length=256,
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
     print('Finish loading data')
@@ -150,7 +151,7 @@ def create_argparser():
         use_kl=False,
         use_scale_shift_norm=True,
         weight_decay=0.0,
-        model_in_channels=128,
+        model_in_channels=32,
         model_model_channels=128,
         model_dropout=0.01,
         model_hidden_size=1024,
