@@ -114,6 +114,7 @@ def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train')
             MultimodalMoleculeCaptioning(
                 args,
                 tokenizer=tokenizer,
+                dataset_name_or_path=args.dataset_name_or_path,
                 split='train',
                 input_max_length=512,
                 output_max_length=512
@@ -128,6 +129,7 @@ def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train')
             MultimodalMoleculeCaptioning(
                 args,
                 tokenizer=tokenizer,
+                dataset_name_or_path=args.dataset_name_or_path,
                 split='validation',
                 input_max_length=512,
                 output_max_length=512
