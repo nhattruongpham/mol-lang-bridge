@@ -13,7 +13,16 @@ class MultimodalMoleculeCaptioning(Dataset):
                  output_max_length=256):
         super().__init__()
         self.dataset = load_dataset(dataset_name_or_path, split=split, use_auth_token=True)
-        self.dataset = self.dataset.filter(lambda sample: sample['selfies'] != '') # remove invalid selfies
+        
+        # preprocessing data
+        if 'LPM-24' in dataset_name_or_path:
+            self.dataset = self.dataset.filter(lambda sample: sample['selfies'] != '') # remove invalid selfies
+        elif 'chebi-20' in dataset_name_or_path:
+            self.dataset = self.dataset.map(lambda sample: {'DESCRIPTION': self.__preprocessing_chebi_20(sample['DESCRIPTION'])}) 
+            self.dataset = self.dataset.filter(lambda sample: sample['SELFIES'] != None)
+            
+        self.is_lpm_24 = 'LPM-24' in dataset_name_or_path
+            
         self.tokenizer = tokenizer
         self.input_max_length = input_max_length
         self.output_max_length = output_max_length
@@ -27,14 +36,31 @@ class MultimodalMoleculeCaptioning(Dataset):
                                 std=[0.229, 0.224, 0.225])
         ])
         
+    def __preprocessing_chebi_20(self, s):
+        if ' is ' in s:
+            return "The molecule" + s[s.index(' is '):]
+        else:
+            return s
+        
     def __len__(self):
         return len(self.dataset)
         
     def __getitem__(self, index):
         sample = self.dataset[index]
         
+        if self.is_lpm_24:
+            sample_selfies = sample['selfies']
+            sample_caption = sample['caption']
+            sample_smiles = sample['canonical']
+            sample_image = sample['image']
+        else:
+            sample_selfies = sample['SELFIES']
+            sample_caption = sample['DESCRIPTION']
+            sample_smiles = sample['CAN_SMILES']
+            sample_image = sample['IMAGE']
+        
         input = self.tokenizer(
-            "<bom>"+sample['selfies']+"<eom>",
+            "<bom>"+sample_selfies+"<eom>",
             add_special_tokens=True,
             max_length=self.input_max_length,
             padding = 'max_length',
@@ -44,7 +70,7 @@ class MultimodalMoleculeCaptioning(Dataset):
         )
         
         output = self.tokenizer(
-            "<boc>"+sample['caption']+"<eoc>",
+            "<boc>"+sample_caption+"<eoc>",
             add_special_tokens=True,
             max_length=self.output_max_length,
             padding = 'max_length',
@@ -54,9 +80,9 @@ class MultimodalMoleculeCaptioning(Dataset):
         )
         
         smiles_input = self.roberta_tokenizer(
-            sample['canonical'],
+            sample_smiles,
             add_special_tokens=True,
-            max_length=256,
+            max_length=512,
             padding='max_length',
             truncation=True,
             return_attention_mask=True,
@@ -74,12 +100,12 @@ class MultimodalMoleculeCaptioning(Dataset):
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': attention_mask,
-            'images': self.image_transform(sample['image'].convert('L').convert('RGB')),
+            'images': self.image_transform(sample_image.convert('L').convert('RGB')),
             'smiles_input_ids': smiles_input_ids,
             'smiles_attention_mask': smiles_attention_mask,
-            'canonical': sample['canonical'],
-            'selfies': sample['selfies'],
-            'caption': sample['caption']
+            'canonical': sample_smiles,
+            'selfies': sample_selfies,
+            'caption': sample_caption
         }
 
 def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train'):
