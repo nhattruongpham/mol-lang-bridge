@@ -51,6 +51,7 @@ class Lang2molDataset(Dataset):
         dir,
         tokenizer,
         split,
+        dataset_name,
         pre=None,
         prob=0,
         load_state=True,
@@ -62,6 +63,7 @@ class Lang2molDataset(Dataset):
         self.split = split
         self.pre = pre
         self.prob = prob
+        self.dataset_name = dataset_name
         self.corrupt_prob = corrupt_prob
         self.ori_data = self.create_data()
         self.load_state = load_state
@@ -78,13 +80,13 @@ class Lang2molDataset(Dataset):
     def create_data(self):
         try:
             dataset = load_dataset(
-                "ndhieunguyen/LPM-24",
+                self.dataset_name,
                 token=True,
                 split=self.split,
             ).sort("id")
         except:
             dataset = load_dataset(
-                "ndhieunguyen/LPM-24",
+                self.dataset_name,
                 use_auth_token=True,
                 split=self.split,
             ).sort("id")

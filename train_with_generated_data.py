@@ -67,6 +67,7 @@ def main_worker(rank, world_size):
         split="train",
         corrupt_prob=0.0,
         token_max_length=256,
+        dataset_name=args.dataset_name
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
     print('Finish loading data')
@@ -157,6 +158,7 @@ def create_argparser():
         model_hidden_size=1024,
         model_num_attention_heads=16,
         model_num_hidden_layers=12,
+        dataset_name='ndhieunguyen/LPM-24-extra'
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
