@@ -21,7 +21,9 @@ class T5MultimodalModel(pl.LightningModule):
             text_feature_dim=args.multimodal.text_feature_dim,
             visual_feature_dim=args.multimodal.visual_feature_dim,
             smiles_feature_dim=args.multimodal.smiles_feature_dim,
-            intermidate_dim=args.multimodal.intermediate_dim 
+            intermidate_dim=args.multimodal.intermediate_dim,
+            fusion_encoder_layers=args.multimodal.fusion_encoder_layers,
+            fusion_decoder_layers=args.multimodal.fusion_decoder_layers
         )
         
         if args.multimodal.use_visual_feature:

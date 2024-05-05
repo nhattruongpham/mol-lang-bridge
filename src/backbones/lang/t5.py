@@ -908,7 +908,9 @@ class T5Stack(T5PreTrainedModel):
                  visual_feature_dim: int = 1536,
                  text_feature_dim: int = 768,
                  smiles_feature_dim: int = 768,
-                 intermidate_dim: int = 256
+                 intermidate_dim: int = 256,
+                 fusion_encoder_layers: List = [],
+                 fusion_decoder_layers: List = []
                  ):
         super().__init__(config)
 
@@ -917,6 +919,8 @@ class T5Stack(T5PreTrainedModel):
         self.use_forget_gate = use_forget_gate
         self.use_visual_feature = use_visual_feature
         self.use_smiles_feature = use_smiles_feature
+        self.fusion_encoder_layers = fusion_encoder_layers
+        self.fusion_decoder_layers = fusion_decoder_layers
         
         # Initialize fusion encoder
         if not self.is_decoder:
@@ -930,7 +934,10 @@ class T5Stack(T5PreTrainedModel):
                 
                 if use_forget_gate:
                     self.visual_fg = nn.Linear(text_feature_dim + intermidate_dim, intermidate_dim)
-                
+                    
+            self.intermediate_layer_norm = nn.LayerNorm(text_feature_dim)
+            self.fg_act = nn.Sigmoid()
+        else:
             if use_smiles_feature:
                 self.smiles_linear_k = nn.Linear(smiles_feature_dim, intermidate_dim)
                 self.smiles_linear_v = nn.Linear(smiles_feature_dim, intermidate_dim)
@@ -1029,7 +1036,7 @@ class T5Stack(T5PreTrainedModel):
         output_hidden_states=None,
         return_dict=None,
         image_features=None,
-        smiles_features=None,
+        smiles_features=None
     ):
         # Model parallel
         if self.model_parallel:
@@ -1200,7 +1207,7 @@ class T5Stack(T5PreTrainedModel):
 
         # Add text-image fusion layer
         if not self.is_decoder:
-            if self.use_visual_feature:
+            if self.use_visual_feature and i in self.fusion_encoder_layers:
                 vt_K = self.visual_linear_k(image_features).transpose(0, 1)
                 vt_V = self.visual_linear_v(image_features).transpose(0, 1)
                 vt_Q = self.visual_linear_q(hidden_states).transpose(0, 1)
@@ -1219,7 +1226,9 @@ class T5Stack(T5PreTrainedModel):
                 # Residual
                 vt_hidden_states = hidden_states + vt_output
                 
-            if self.use_smiles_feature:
+                hidden_states = self.intermediate_layer_norm(vt_hidden_states)
+        else:
+            if self.use_smiles_feature and i in self.fusion_decoder_layers:
                 st_K = self.smiles_linear_k(smiles_features).transpose(0, 1)
                 st_V = self.smiles_linear_v(smiles_features).transpose(0, 1)
                 st_Q = self.smiles_linear_q(hidden_states).transpose(0, 1)
@@ -1237,23 +1246,23 @@ class T5Stack(T5PreTrainedModel):
                 
                 # Residual
                 st_hidden_states = hidden_states + st_output
-            
-            # Gated Multimodal Unit
-            if self.use_smiles_feature and self.use_visual_feature:
-                vt_h = torch.tanh(vt_hidden_states)
-                st_h = torch.tanh(st_hidden_states)
-                svt_z = self.visual_smiles_text_fc(
-                    torch.concat([vt_hidden_states, st_hidden_states], dim=-1)
-                )
-                svt_z = torch.softmax(svt_z, dim=-1)
-                svt_hidden_states = svt_z * vt_h + (1-svt_z) * st_h
-            
-            if self.use_visual_feature and not self.use_smiles_feature:
+                
                 hidden_states = self.intermediate_layer_norm(vt_hidden_states)
-            elif self.use_smiles_feature and not self.use_visual_feature:
-                hidden_states = self.intermediate_layer_norm(st_hidden_states)
-            elif self.use_smiles_feature and self.use_visual_feature:
-                hidden_states = self.intermediate_layer_norm(svt_hidden_states)
+            
+            # # Gated Multimodal Unit
+            # if self.use_smiles_feature and self.use_visual_feature:
+            #     vt_h = torch.tanh(vt_hidden_states)
+            #     st_h = torch.tanh(st_hidden_states)
+            #     svt_z = self.visual_smiles_text_fc(
+            #         torch.concat([vt_hidden_states, st_hidden_states], dim=-1)
+            #     )
+            #     svt_z = torch.softmax(svt_z, dim=-1)
+            #     svt_hidden_states = svt_z * vt_h + (1-svt_z) * st_h
+                
+            # elif self.use_smiles_feature and not self.use_visual_feature:
+            #     hidden_states = self.intermediate_layer_norm(st_hidden_states)
+            # elif self.use_smiles_feature and self.use_visual_feature:
+            #     hidden_states = self.intermediate_layer_norm(svt_hidden_states)
 
         # Add last layer
         if output_hidden_states:
@@ -2501,7 +2510,9 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
                        visual_feature_dim: int = 1536,
                        text_feature_dim: int = 768,
                        smiles_feature_dim: int = 768,
-                       intermidate_dim: int = 256):
+                       intermidate_dim: int = 256,
+                       fusion_encoder_layers: List = [],
+                       fusion_decoder_layers: List = []):
         super().__init__(config)
         self.model_dim = config.d_model
 
@@ -2519,13 +2530,25 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
                                visual_feature_dim=visual_feature_dim, 
                                text_feature_dim=text_feature_dim,
                                smiles_feature_dim=smiles_feature_dim,
-                               intermidate_dim=intermidate_dim)
+                               intermidate_dim=intermidate_dim,
+                               fusion_encoder_layers=fusion_encoder_layers,
+                               fusion_decoder_layers=fusion_decoder_layers)
 
         decoder_config = copy.deepcopy(config)
         decoder_config.is_decoder = True
         decoder_config.is_encoder_decoder = False
         decoder_config.num_layers = config.num_decoder_layers
-        self.decoder = T5Stack(decoder_config, self.shared)
+        self.decoder = T5Stack(decoder_config, self.shared,
+                               n_attention_heads=n_attention_heads, 
+                               use_visual_feature=use_visual_feature,
+                               use_smiles_feature=use_smiles_feature,
+                               use_forget_gate=use_forget_gate, 
+                               visual_feature_dim=visual_feature_dim, 
+                               text_feature_dim=text_feature_dim,
+                               smiles_feature_dim=smiles_feature_dim,
+                               intermidate_dim=intermidate_dim,
+                               fusion_encoder_layers=fusion_encoder_layers,
+                               fusion_decoder_layers=fusion_decoder_layers)
 
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
 
