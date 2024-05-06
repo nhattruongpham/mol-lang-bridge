@@ -1201,69 +1201,71 @@ class T5Stack(T5PreTrainedModel):
                 for k, v in self.device_map.items():
                     if i == v[-1] and "cuda:" + str(k) != self.last_device:
                         hidden_states = hidden_states.to("cuda:" + str(k + 1))
+            
+            if not self.is_decoder:
+                if self.use_visual_feature and i in self.fusion_encoder_layers:
+                    vt_K = self.visual_linear_k(image_features).transpose(0, 1)
+                    vt_V = self.visual_linear_v(image_features).transpose(0, 1)
+                    vt_Q = self.visual_linear_q(hidden_states).transpose(0, 1)
+                    
+                    vt_attn_output, _ = self.visual_text_multihead_attn(vt_Q, vt_K, vt_V)
+                    vt_attn_output = vt_attn_output.transpose(0, 1)
+                    if self.use_forget_gate:
+                        vt_forget_mask = self.visual_fg(torch.cat((vt_attn_output, hidden_states), 2))
+                        vt_forget_mask = self.fg_act(vt_forget_mask)
+                        vt_forget_mask = self.dropout(vt_forget_mask)
+                        vt_attn_output = vt_forget_mask.mul(vt_attn_output)
+                    vt_output = self.visual_linear_q2q(torch.cat((hidden_states, vt_attn_output), 2))
+                    
+                    vt_output = self.dropout(vt_output)
+                    
+                    # Residual
+                    hidden_states = hidden_states + vt_output
+                    
+                    # hidden_states = self.intermediate_layer_norm(vt_hidden_states)
+            else:
+                if self.use_smiles_feature and i in self.fusion_decoder_layers:
+                    st_K = self.smiles_linear_k(smiles_features).transpose(0, 1)
+                    st_V = self.smiles_linear_v(smiles_features).transpose(0, 1)
+                    st_Q = self.smiles_linear_q(hidden_states).transpose(0, 1)
+                    
+                    st_attn_output, _ = self.smiles_text_multihead_attn(st_Q, st_K, st_V)
+                    st_attn_output = st_attn_output.transpose(0, 1)
+                    if self.use_forget_gate:
+                        st_forget_mask = self.smiles_fg(torch.cat((st_attn_output, hidden_states), 2))
+                        st_forget_mask = self.fg_act(st_forget_mask)
+                        st_forget_mask = self.dropout(st_forget_mask)
+                        st_attn_output = st_forget_mask.mul(st_attn_output)
+                    st_output = self.smiles_linear_q2q(torch.cat((hidden_states, st_attn_output), 2))
+                    
+                    st_output = self.dropout(st_output)
+                    
+                    # Residual
+                    hidden_states = hidden_states + st_output
+                    
+                    # hidden_states = self.intermediate_layer_norm(st_hidden_states)
+                
+                # # Gated Multimodal Unit
+                # if self.use_smiles_feature and self.use_visual_feature:
+                #     vt_h = torch.tanh(vt_hidden_states)
+                #     st_h = torch.tanh(st_hidden_states)
+                #     svt_z = self.visual_smiles_text_fc(
+                #         torch.concat([vt_hidden_states, st_hidden_states], dim=-1)
+                #     )
+                #     svt_z = torch.softmax(svt_z, dim=-1)
+                #     svt_hidden_states = svt_z * vt_h + (1-svt_z) * st_h
+                    
+                # elif self.use_smiles_feature and not self.use_visual_feature:
+                #     hidden_states = self.intermediate_layer_norm(st_hidden_states)
+                # elif self.use_smiles_feature and self.use_visual_feature:
+                #     hidden_states = self.intermediate_layer_norm(svt_hidden_states)
+        
 
         hidden_states = self.final_layer_norm(hidden_states)
         hidden_states = self.dropout(hidden_states)
 
         # Add text-image fusion layer
-        if not self.is_decoder:
-            if self.use_visual_feature and i in self.fusion_encoder_layers:
-                vt_K = self.visual_linear_k(image_features).transpose(0, 1)
-                vt_V = self.visual_linear_v(image_features).transpose(0, 1)
-                vt_Q = self.visual_linear_q(hidden_states).transpose(0, 1)
-                
-                vt_attn_output, _ = self.visual_text_multihead_attn(vt_Q, vt_K, vt_V)
-                vt_attn_output = vt_attn_output.transpose(0, 1)
-                if self.use_forget_gate:
-                    vt_forget_mask = self.visual_fg(torch.cat((vt_attn_output, hidden_states), 2))
-                    vt_forget_mask = self.fg_act(vt_forget_mask)
-                    vt_forget_mask = self.dropout(vt_forget_mask)
-                    vt_attn_output = vt_forget_mask.mul(vt_attn_output)
-                vt_output = self.visual_linear_q2q(torch.cat((hidden_states, vt_attn_output), 2))
-                
-                vt_output = self.dropout(vt_output)
-                
-                # Residual
-                vt_hidden_states = hidden_states + vt_output
-                
-                hidden_states = self.intermediate_layer_norm(vt_hidden_states)
-        else:
-            if self.use_smiles_feature and i in self.fusion_decoder_layers:
-                st_K = self.smiles_linear_k(smiles_features).transpose(0, 1)
-                st_V = self.smiles_linear_v(smiles_features).transpose(0, 1)
-                st_Q = self.smiles_linear_q(hidden_states).transpose(0, 1)
-                
-                st_attn_output, _ = self.smiles_text_multihead_attn(st_Q, st_K, st_V)
-                st_attn_output = st_attn_output.transpose(0, 1)
-                if self.use_forget_gate:
-                    st_forget_mask = self.smiles_fg(torch.cat((st_attn_output, hidden_states), 2))
-                    st_forget_mask = self.fg_act(st_forget_mask)
-                    st_forget_mask = self.dropout(st_forget_mask)
-                    st_attn_output = st_forget_mask.mul(st_attn_output)
-                st_output = self.smiles_linear_q2q(torch.cat((hidden_states, st_attn_output), 2))
-                
-                st_output = self.dropout(st_output)
-                
-                # Residual
-                st_hidden_states = hidden_states + st_output
-                
-                hidden_states = self.intermediate_layer_norm(vt_hidden_states)
-            
-            # # Gated Multimodal Unit
-            # if self.use_smiles_feature and self.use_visual_feature:
-            #     vt_h = torch.tanh(vt_hidden_states)
-            #     st_h = torch.tanh(st_hidden_states)
-            #     svt_z = self.visual_smiles_text_fc(
-            #         torch.concat([vt_hidden_states, st_hidden_states], dim=-1)
-            #     )
-            #     svt_z = torch.softmax(svt_z, dim=-1)
-            #     svt_hidden_states = svt_z * vt_h + (1-svt_z) * st_h
-                
-            # elif self.use_smiles_feature and not self.use_visual_feature:
-            #     hidden_states = self.intermediate_layer_norm(st_hidden_states)
-            # elif self.use_smiles_feature and self.use_visual_feature:
-            #     hidden_states = self.intermediate_layer_norm(svt_hidden_states)
-
+        
         # Add last layer
         if output_hidden_states:
             all_hidden_states = all_hidden_states + (hidden_states,)
@@ -2737,6 +2739,8 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            image_features=image_features,
+            smiles_features=smiles_features
         )
 
         sequence_output = decoder_outputs[0]
