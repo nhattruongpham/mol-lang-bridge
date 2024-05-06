@@ -56,10 +56,6 @@ def main(args):
         accumulate_grad_batches=args.grad_accum,
         deterministic=True
     )
-    
-    if args.lr == None:
-        tuner = Tuner(trainer)
-        tuner.lr_find(model)
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
@@ -68,11 +64,11 @@ if __name__ == "__main__":
    
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=8)
-    parser.add_argument('--grad_accum', type=int, default=128)
+    parser.add_argument('--grad_accum', type=int, default=8)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--num_devices', type=int, default=1)
-    parser.add_argument('--lr', type=float, default=None)
+    parser.add_argument('--lr', type=float, default=3e-5)
     parser.add_argument('--warmup_ratio', type=int, default=0.01)
     parser.add_argument('--precision', type=str, default='32')
     parser.add_argument('--dataset_name_or_path', type=str, default='duongttr/chebi-20')
