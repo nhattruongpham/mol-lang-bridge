@@ -133,6 +133,7 @@ class Lang2molDataset(Dataset):
 
         return sample
 
+
 class Lang2molDataset_2(Dataset):
     def __init__(
         self,
@@ -157,8 +158,8 @@ class Lang2molDataset_2(Dataset):
         self.dataset_name = dataset_name
         self.ori_data = self.create_data()
         self.load_state = load_state
-        self.model = T5EncoderModel.from_pretrained('QizhiPei/biot5-base-text2mol')
-        self.model.to('cuda')
+        self.model = T5EncoderModel.from_pretrained("QizhiPei/biot5-base-text2mol")
+        self.model.to("cuda")
         self.model.eval()
 
     def create_data(self):
@@ -176,9 +177,12 @@ class Lang2molDataset_2(Dataset):
             ).sort("id")
 
         return [
-            (int(sample_id), sample_selfies, sample_caption)
-            for (sample_id, sample_selfies, sample_caption) in zip(
-                dataset["id"], dataset["selfies"], dataset["caption"]
+            (int(sample_id), sample_selfies, sample_caption, sample_canonical)
+            for (sample_id, sample_selfies, sample_caption, sample_canonical) in zip(
+                dataset["id"],
+                dataset["selfies"],
+                dataset["caption"],
+                dataset["canonical"],
             )
         ]
 
@@ -193,8 +197,13 @@ class Lang2molDataset_2(Dataset):
 
     def __getitem__(self, idx):
         data = self.ori_data[idx]
-        sample = {"id": data[0], "selfies": self.permute(data[1]), "caption": data[2]}
-        
+        sample = {
+            "id": data[0],
+            "selfies": self.permute(data[1]),
+            "caption": data[2],
+            "canonical": data[3],
+        }
+
         # Molecules
         output_molecule = self.tokenizer(
             sample["selfies"],
@@ -207,7 +216,7 @@ class Lang2molDataset_2(Dataset):
         )
         sample["selfies_ids"] = output_molecule["input_ids"]
         sample["corrupted_selfies_ids"] = sample["selfies_ids"]
-        
+
         # Captions
         output_caption = self.tokenizer(
             sample["caption"],
@@ -218,10 +227,14 @@ class Lang2molDataset_2(Dataset):
             return_tensors="pt",
             return_attention_mask=True,
         )
-        sample["caption_state"] = self.model(input_ids=output_caption["input_ids"].to('cuda'), attention_mask=output_caption["attention_mask"].to('cuda')).last_hidden_state
+        sample["caption_state"] = self.model(
+            input_ids=output_caption["input_ids"].to("cuda"),
+            attention_mask=output_caption["attention_mask"].to("cuda"),
+        ).last_hidden_state
         sample["caption_mask"] = output_caption["attention_mask"]
 
         return sample
+
 
 def changeorder(selfies, shuffle):
     smiles = sf.encoder(selfies)

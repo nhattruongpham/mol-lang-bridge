@@ -94,6 +94,7 @@ def main():
     all_outputs = []
     all_selfies = []
     all_caption = []
+    all_canonical = []
     pbar = tqdm(
         total=len(validation_dataset) // args.batch_size + 1
         if len(validation_dataset) % args.batch_size != 0
@@ -106,6 +107,7 @@ def main():
                 validation_dataset[i]["caption_mask"],
                 validation_dataset[i]["selfies"],
                 validation_dataset[i]["caption"],
+                validation_dataset[i]["canonical"],
             )
             for i in range(next_batch_start, next_batch_end)
         ]
@@ -113,6 +115,7 @@ def main():
         caption_mask = torch.concat([i[1] for i in sample], dim=0)
         selfies = [i[2] for i in sample]
         caption = [i[3] for i in sample]
+        canonical = [i[3] for i in sample]
 
         outputs = sample_fn(
             model,
@@ -127,6 +130,7 @@ def main():
         all_outputs.append(outputs)
         all_selfies += selfies
         all_caption += caption
+        all_canonical += canonical
 
         next_batch_start = next_batch_end
         next_batch_end = min(next_batch_end + args.batch_size, len(validation_dataset))
@@ -156,7 +160,7 @@ def main():
             f.write(
                 all_caption[i]
                 + "\t"
-                + sf.decoder(all_selfies[i])
+                + all_canonical[i]
                 + "\t"
                 + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
                 + "\n"
