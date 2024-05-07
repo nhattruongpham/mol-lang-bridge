@@ -151,7 +151,7 @@ def main():
             f.write(
                 sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
                 + "   ||   "
-                + sf.decoder(all_caption[i])
+                + all_canonical[i]
                 + "\n"
             )
 
