@@ -115,7 +115,7 @@ def main():
         caption_mask = torch.concat([i[1] for i in sample], dim=0)
         selfies = [i[2] for i in sample]
         caption = [i[3] for i in sample]
-        canonical = [i[3] for i in sample]
+        canonical = [i[4] for i in sample]
 
         outputs = sample_fn(
             model,
