@@ -127,7 +127,15 @@ def main():
             progress=True,
             caption=(caption_state, caption_mask),
         )
-        all_outputs.append(outputs)
+
+        # outputs = torch.concat(outputs, dim=0)
+        logits = model.get_logits(torch.tensor(outputs).cuda())  # bsz, seqlen, vocab
+        cands = torch.topk(logits, k=1, dim=-1)
+        outputs = cands.indices
+        outputs = outputs.squeeze(-1)
+        outputs = tokenizer.decode(outputs)
+
+        all_outputs += outputs
         all_selfies += selfies
         all_caption += caption
         all_canonical += canonical
@@ -139,13 +147,13 @@ def main():
         if next_batch_start == len(validation_dataset):
             break
 
-    all_outputs = torch.concat(all_outputs, dim=0)
-    logits = model.get_logits(torch.tensor(all_outputs).cuda())  # bsz, seqlen, vocab
-    cands = torch.topk(logits, k=1, dim=-1)
-    all_outputs = cands.indices
-    all_outputs = all_outputs.squeeze(-1)
+    # all_outputs = torch.concat(all_outputs, dim=0)
+    # logits = model.get_logits(torch.tensor(all_outputs).cuda())  # bsz, seqlen, vocab
+    # cands = torch.topk(logits, k=1, dim=-1)
+    # all_outputs = cands.indices
+    # all_outputs = all_outputs.squeeze(-1)
+    # all_outputs = tokenizer.decode(all_outputs)
 
-    all_outputs = tokenizer.decode(all_outputs)
     with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(
