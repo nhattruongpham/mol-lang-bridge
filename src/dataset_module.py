@@ -10,9 +10,11 @@ class MultimodalMoleculeCaptioning(Dataset):
                  dataset_name_or_path='ndhieunguyen/LPM-24', 
                  split='train',
                  input_max_length=256,
-                 output_max_length=256):
+                 output_max_length=256,
+                 is_inference=False):
         super().__init__()
         self.dataset = load_dataset(dataset_name_or_path, split=split, use_auth_token=True)
+        self.is_inference = is_inference
         
         # preprocessing data
         if 'LPM-24' in dataset_name_or_path:
@@ -50,7 +52,7 @@ class MultimodalMoleculeCaptioning(Dataset):
         
         if self.is_lpm_24:
             sample_selfies = sample['selfies']
-            sample_caption = sample['caption']
+            sample_caption = sample['caption'] if not self.is_inference else ''
             sample_smiles = sample['canonical']
             sample_image = sample['image']
         else:
@@ -108,7 +110,7 @@ class MultimodalMoleculeCaptioning(Dataset):
             'caption': sample_caption
         }
 
-def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train'):
+def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train', is_inference=False):
     if split == 'train':
         return DataLoader(
             MultimodalMoleculeCaptioning(
@@ -117,7 +119,8 @@ def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train')
                 dataset_name_or_path=args.dataset_name_or_path,
                 split='train',
                 input_max_length=512,
-                output_max_length=512
+                output_max_length=512,
+                is_inference=is_inference
             ),
             batch_size=batch_size,
             num_workers=num_workers,
@@ -132,7 +135,8 @@ def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train')
                 dataset_name_or_path=args.dataset_name_or_path,
                 split='validation',
                 input_max_length=512,
-                output_max_length=512
+                output_max_length=512,
+                is_inference=is_inference
             ),
             batch_size=batch_size,
             num_workers=num_workers,
