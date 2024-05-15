@@ -236,6 +236,80 @@ class Lang2molDataset_2(Dataset):
         return sample
 
 
+class Lang2molDataset_3(Dataset):
+    def __init__(
+        self,
+        dir,
+        tokenizer,
+        split,
+        dataset_name,
+        pre=None,
+        prob=0,
+        load_state=True,
+        corrupt_prob=0.4,
+        token_max_length=256,
+    ):
+        super().__init__()
+        self.dir = dir
+        self.tokenizer = tokenizer
+        self.split = split
+        self.pre = pre
+        self.prob = prob
+        self.corrupt_prob = corrupt_prob
+        self.token_max_length = token_max_length
+        self.dataset_name = dataset_name
+        self.ori_data = self.create_data()
+        self.load_state = load_state
+        self.model = T5EncoderModel.from_pretrained("QizhiPei/biot5-base-text2mol")
+        self.model.eval()
+
+    def create_data(self):
+        try:
+            dataset = load_dataset(
+                self.dataset_name,
+                token=True,
+                split=self.split,
+            )
+        except:
+            dataset = load_dataset(
+                self.dataset_name,
+                use_auth_token=True,
+                split=self.split,
+            )
+
+        return [sample_caption for sample_caption in dataset["caption"]]
+
+    def __len__(self):
+        return len(self.ori_data)
+
+    def permute(self, selfies):
+        if random.random() < self.prob:
+            return changeorder(selfies, shuffle=True)
+        else:
+            return selfies
+
+    def __getitem__(self, idx):
+        sample = {"caption": self.ori_data[idx]}
+
+        # Captions
+        output_caption = self.tokenizer(
+            sample["caption"],
+            max_length=self.token_max_length,
+            truncation=True,
+            padding="max_length",
+            add_special_tokens=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        )
+        sample["caption_state"] = self.model(
+            input_ids=output_caption["input_ids"],
+            attention_mask=output_caption["attention_mask"],
+        ).last_hidden_state
+        sample["caption_mask"] = output_caption["attention_mask"]
+
+        return sample
+
+
 def changeorder(selfies, shuffle):
     smiles = sf.encoder(selfies)
     mol = Chem.MolFromSmiles(smiles)
