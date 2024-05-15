@@ -182,7 +182,7 @@ class Lang2molDataset_2(Dataset):
                 dataset["id"],
                 dataset["selfies"],
                 dataset["caption"],
-                dataset["canonical"],
+                dataset["molecule"],
             )
         ]
 
@@ -201,7 +201,7 @@ class Lang2molDataset_2(Dataset):
             "id": data[0],
             "selfies": self.permute(data[1]),
             "caption": data[2],
-            "canonical": data[3],
+            "molecule": data[3],
         }
 
         # Molecules

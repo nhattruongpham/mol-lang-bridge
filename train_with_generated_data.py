@@ -17,6 +17,7 @@ from src.scripts.mydatasets import get_dataloader, Lang2molDataset_2
 import warnings
 import torch.multiprocessing as mp
 
+
 def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(42)
@@ -66,12 +67,12 @@ def main_worker(rank, world_size):
         tokenizer=tokenizer,
         split="train",
         corrupt_prob=0.0,
-        token_max_length=256,
-        dataset_name=args.dataset_name
+        token_max_length=512,
+        dataset_name=args.dataset_name,
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
-    print('Finish loading data')
-    
+    print("Finish loading data")
+
     TrainLoop(
         model=model,
         diffusion=diffusion,
@@ -158,7 +159,7 @@ def create_argparser():
         model_hidden_size=1024,
         model_num_attention_heads=16,
         model_num_hidden_layers=12,
-        dataset_name='ndhieunguyen/LPM-24-extra'
+        dataset_name="ndhieunguyen/LPM-24-extra",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
