@@ -77,6 +77,7 @@ def main():
         tokenizer=tokenizer,
         split=args.split,
         corrupt_prob=0.0,
+        token_max_length=512,
         dataset_name="ndhieunguyen/LPM-24",
     )
     print("-------------------- DATASET INFO --------------------")
@@ -146,13 +147,6 @@ def main():
 
         if next_batch_start == len(validation_dataset):
             break
-
-    # all_outputs = torch.concat(all_outputs, dim=0)
-    # logits = model.get_logits(torch.tensor(all_outputs).cuda())  # bsz, seqlen, vocab
-    # cands = torch.topk(logits, k=1, dim=-1)
-    # all_outputs = cands.indices
-    # all_outputs = all_outputs.squeeze(-1)
-    # all_outputs = tokenizer.decode(all_outputs)
 
     with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
