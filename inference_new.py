@@ -16,7 +16,7 @@ from src.improved_diffusion.script_util import (
     model_and_diffusion_defaults,
     add_dict_to_argparser,
 )
-from src.scripts.mydatasets import Lang2molDataset_2
+from src.scripts.mydatasets import Lang2molDataset_eval
 import os
 import selfies as sf
 from tqdm import tqdm
@@ -72,7 +72,7 @@ def main():
     print(f"Loading {args.split} set")
     print("--" * 30)
 
-    validation_dataset = Lang2molDataset_2(
+    validation_dataset = Lang2molDataset_eval(
         dir=args.dataset_path,
         tokenizer=tokenizer,
         split=args.split,
