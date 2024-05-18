@@ -172,7 +172,6 @@ def main():
 def create_argparser():
     defaults = dict(
         clip_denoised=False,
-        batch_size=64,
         mbr_sample=1,
         model_path="",
         model_arch="conv-unet",
