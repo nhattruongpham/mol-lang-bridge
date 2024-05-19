@@ -10,7 +10,6 @@ from lightning.pytorch import seed_everything
 import yaml
 import os
 from utils import set_nested_attr
-from lightning.pytorch.tuner import Tuner
 
 def main(args):
     seed_everything(42)
@@ -33,7 +32,7 @@ def main(args):
     ckpt_callback = ModelCheckpoint(
         dirpath=args.output_folder,
         filename='ckpt_{eval_loss}',
-        save_top_k=3,
+        save_top_k=5,
         verbose=True,
         monitor='eval_loss',
         mode='min'
@@ -71,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=3e-5)
     parser.add_argument('--warmup_ratio', type=int, default=0.01)
     parser.add_argument('--precision', type=str, default='32')
-    parser.add_argument('--dataset_name_or_path', type=str, default='duongttr/chebi-20')
+    parser.add_argument('--dataset_name_or_path', type=str, default='duongttr/chebi-20-new')
     parser.add_argument('--model_config', type=str, default='src/configs/config_use_v_nofg.yaml')
     parser.add_argument('--output_folder', type=str, default='ckpt/')
     

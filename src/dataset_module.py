@@ -19,9 +19,6 @@ class MultimodalMoleculeCaptioning(Dataset):
         # preprocessing data
         if 'LPM-24' in dataset_name_or_path:
             self.dataset = self.dataset.filter(lambda sample: sample['selfies'] != '') # remove invalid selfies
-        elif 'chebi-20' in dataset_name_or_path:
-            self.dataset = self.dataset.map(lambda sample: {'DESCRIPTION': self.__preprocessing_chebi_20(sample['DESCRIPTION'])}) 
-            self.dataset = self.dataset.filter(lambda sample: sample['SELFIES'] != None)
             
         self.is_lpm_24 = 'LPM-24' in dataset_name_or_path
             
@@ -38,12 +35,6 @@ class MultimodalMoleculeCaptioning(Dataset):
                                 std=[0.229, 0.224, 0.225])
         ])
         
-    def __preprocessing_chebi_20(self, s):
-        if ' is ' in s:
-            return "The molecule" + s[s.index(' is '):]
-        else:
-            return s
-        
     def __len__(self):
         return len(self.dataset)
         
@@ -57,9 +48,9 @@ class MultimodalMoleculeCaptioning(Dataset):
             sample_image = sample['image']
         else:
             sample_selfies = sample['SELFIES']
-            sample_caption = sample['DESCRIPTION']
-            sample_smiles = sample['CAN_SMILES']
-            sample_image = sample['IMAGE']
+            sample_caption = sample['description']
+            sample_smiles = sample['SMILES']
+            sample_image = sample['image']
         
         input = self.tokenizer(
             "<bom>"+sample_selfies+"<eom>",
