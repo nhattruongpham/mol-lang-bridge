@@ -37,7 +37,7 @@ def main(args):
     os.makedirs(os.path.dirname(args.output_csv), exist_ok=True) 
     
     with open(args.output_csv, 'w') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=['selfies', 'gt_caption', 'pred_caption'])
+        writer = csv.DictWriter(csv_file, fieldnames=['smiles', 'selfies', 'gt_caption', 'pred_caption'])
         writer.writeheader()
         
         for idx, batch in enumerate(tqdm(val_dataloader)):
@@ -48,9 +48,10 @@ def main(args):
             pred_captions = [postprocess_text(c) for c in tokenizer.batch_decode(outputs, skip_special_tokens=True)]
             
             writer.writerows([
-                {'selfies': selfies,
+                {'smiles': smiles,
+                 'selfies': selfies,
                  'gt_caption': gt_caption,
-                 'pred_caption': pred_caption} for selfies, gt_caption, pred_caption in  zip(batch['selfies'], gt_captions, pred_captions)
+                 'pred_caption': pred_caption} for smiles, selfies, gt_caption, pred_caption in  zip(batch['canonical'], batch['selfies'], gt_captions, pred_captions)
             ])
         
         

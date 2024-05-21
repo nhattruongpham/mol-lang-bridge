@@ -11,7 +11,6 @@ class T5MultimodalModel(pl.LightningModule):
         super().__init__()
         self.args = args
         
-        self.learning_rate = args.lr
         # Initialize multimodal text-based model
         self.t5_model = T5ForMultimodalConditionalGeneration.from_pretrained(
             args.t5.pretrained_model_name_or_path,
@@ -123,7 +122,7 @@ class T5MultimodalModel(pl.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.learning_rate)
+        optimizer = optim.AdamW(self.parameters(), lr=self.args.lr)
         
         max_iter = self.args.epochs * self.args.train_data_len
         warmup_steps = int(max_iter * self.args.warmup_ratio)
