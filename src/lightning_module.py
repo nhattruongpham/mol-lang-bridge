@@ -162,6 +162,7 @@ class T5MultimodalModel(pl.LightningModule):
             input_ids = input_ids,
             image_features=image_features,
             smiles_features=smiles_features,
+            smiles_attention_mask=smiles_attention_mask,
             decoder_start_token_id=decoder_start_token_id,
             max_length=max_length,
             num_beams=num_beams,

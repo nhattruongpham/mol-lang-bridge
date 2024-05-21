@@ -2823,7 +2823,8 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
             "cross_attn_head_mask": cross_attn_head_mask,
             "use_cache": use_cache,
             "image_features": kwargs["image_features"],
-            "smiles_features": kwargs["smiles_features"]
+            "smiles_features": kwargs["smiles_features"],
+            "smiles_features": kwargs["smiles_attention_mask"]
         }
 
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor):
