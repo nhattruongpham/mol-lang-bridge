@@ -55,18 +55,21 @@ class T5MultimodalModel(pl.LightningModule):
     def resize_token_embeddings(self, len_embeddings):
         self.t5_model.resize_token_embeddings(len_embeddings)
     
-    def forward(self, input_ids, attention_mask, labels=None, image_features=None, smiles_features=None):
-        decoder_input_ids = labels[:, :-1].contiguous()
-        decoder_target_ids = labels[:, 1:].clone().detach()
-        decoder_target_ids[labels[:, 1:] == self.args.tokenizer.pad_token_id] = -100
+    def forward(self, input_ids, 
+                attention_mask, 
+                labels=None, 
+                image_features=None, 
+                smiles_features=None,
+                smiles_attention_mask=None):
+        labels[labels == self.args.tokenizer.pad_token_id] = -100
          
         output = self.t5_model(
             input_ids = input_ids,
             attention_mask = attention_mask,
-            decoder_input_ids = decoder_input_ids,
-            labels = decoder_target_ids,
+            labels = labels,
             image_features=image_features,
-            smiles_features=smiles_features
+            smiles_features=smiles_features,
+            smiles_attention_mask=smiles_attention_mask
         )
         
         return output.loss, output.logits
@@ -90,7 +93,7 @@ class T5MultimodalModel(pl.LightningModule):
                 smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
                                                     attention_mask=smiles_attention_mask).last_hidden_state
         
-        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features)
+        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
         
         self.log("train_loss", loss, prog_bar=True, logger=True)
         
@@ -115,7 +118,7 @@ class T5MultimodalModel(pl.LightningModule):
                 smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
                                                     attention_mask=smiles_attention_mask).last_hidden_state
         
-        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features)
+        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
         
         self.log('eval_loss', loss, prog_bar=True, logger=True)
         

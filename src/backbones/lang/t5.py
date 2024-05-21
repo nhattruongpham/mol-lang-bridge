@@ -1036,7 +1036,8 @@ class T5Stack(T5PreTrainedModel):
         output_hidden_states=None,
         return_dict=None,
         image_features=None,
-        smiles_features=None
+        smiles_features=None,
+        smiles_attention_mask=None
     ):
         # Model parallel
         if self.model_parallel:
@@ -1229,7 +1230,7 @@ class T5Stack(T5PreTrainedModel):
                     st_V = self.smiles_linear_v(smiles_features).transpose(0, 1)
                     st_Q = self.smiles_linear_q(hidden_states).transpose(0, 1)
                     
-                    st_attn_output, _ = self.smiles_text_multihead_attn(st_Q, st_K, st_V)
+                    st_attn_output, _ = self.smiles_text_multihead_attn(st_Q, st_K, st_V, key_padding_mask=(smiles_attention_mask != 1))
                     st_attn_output = st_attn_output.transpose(0, 1)
                     if self.use_forget_gate:
                         st_forget_mask = self.smiles_fg(torch.cat((st_attn_output, hidden_states), 2))
@@ -2642,7 +2643,8 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         image_features: Optional[torch.FloatTensor] = None,
-        smiles_features: Optional[torch.FloatTensor] = None
+        smiles_features: Optional[torch.FloatTensor] = None,
+        smiles_attention_mask: Optional[torch.FloatTensor] = None
     ) -> Union[Tuple[torch.FloatTensor], Seq2SeqLMOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -2696,7 +2698,8 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
                 image_features=image_features,
-                smiles_features=smiles_features
+                smiles_features=smiles_features,
+                smiles_attention_mask=smiles_attention_mask
             )
         elif return_dict and not isinstance(encoder_outputs, BaseModelOutput):
             encoder_outputs = BaseModelOutput(
@@ -2740,7 +2743,8 @@ class T5ForMultimodalConditionalGeneration(T5PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             image_features=image_features,
-            smiles_features=smiles_features
+            smiles_features=smiles_features,
+            smiles_attention_mask=smiles_attention_mask
         )
 
         sequence_output = decoder_outputs[0]
