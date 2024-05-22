@@ -51,9 +51,14 @@ class MultimodalMoleculeCaptioning(Dataset):
             sample_caption = sample['description']
             sample_smiles = sample['SMILES']
             sample_image = sample['image']
+
+        task_definition = 'Definition: You are given a molecule SELFIES. Your job is to generate the molecule description in English that fits the molecule SELFIES.\n\n'
+        task_input = f'Now complete the following example -\nInput: <bom>{sample_selfies}<eom>\nOutput: '
+        
+        model_input = task_definition + task_input
         
         input = self.tokenizer(
-            "<bom>"+sample_selfies+"<eom>",
+            model_input,
             add_special_tokens=True,
             max_length=self.input_max_length,
             padding = 'max_length',
@@ -63,7 +68,7 @@ class MultimodalMoleculeCaptioning(Dataset):
         )
         
         output = self.tokenizer(
-            "<boc>"+sample_caption+"<eoc>",
+            sample_caption,
             add_special_tokens=True,
             max_length=self.output_max_length,
             padding = 'max_length',

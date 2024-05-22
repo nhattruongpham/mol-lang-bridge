@@ -8,11 +8,13 @@ import torch
 from tqdm import tqdm
 import csv
 import os
+from translation_metrics import Mol2Text_translation
 
+evaluator = Mol2Text_translation()
 def postprocess_text(caption):
-    caption = caption[5:]
-    if '<eoc>' in caption:
-        caption = caption[:caption.index('<eoc>')]
+    # caption = caption[5:]
+    # if '<eoc>' in caption:
+    #     caption = caption[:caption.index('<eoc>')]
     return caption.strip()
 
 def main(args):
@@ -35,14 +37,22 @@ def main(args):
     )
     
     os.makedirs(os.path.dirname(args.output_csv), exist_ok=True) 
-    
+
+    # avg_metrics = {
+    #     "bleu2": [],
+    #     "bleu4": [],
+    #     "rouge1": [],
+    #     "rouge2": [],
+    #     "rougeL": [],
+    #     "meteor": [],
+    # }
     with open(args.output_csv, 'w') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=['smiles', 'selfies', 'gt_caption', 'pred_caption'])
         writer.writeheader()
         
         for idx, batch in enumerate(tqdm(val_dataloader)):
             batch = {k:v.to('cuda') if isinstance(v, torch.Tensor) else v for k,v in batch.items()}
-            outputs = model.generate_captioning(batch, decoder_start_token_id=35076)
+            outputs = model.generate_captioning(batch, decoder_start_token_id=0)
             
             gt_captions = batch['caption']
             pred_captions = [postprocess_text(c) for c in tokenizer.batch_decode(outputs, skip_special_tokens=True)]
@@ -53,6 +63,18 @@ def main(args):
                  'gt_caption': gt_caption,
                  'pred_caption': pred_caption} for smiles, selfies, gt_caption, pred_caption in  zip(batch['canonical'], batch['selfies'], gt_captions, pred_captions)
             ])
+
+            print(gt_captions)
+            print(pred_captions)
+            output_metric = evaluator(pred_captions, gt_captions)
+            print(output_metric)
+            # for k, v in output_metric.items():
+            #     avg_metrics[k].append(v)
+
+            # for k, v in avg_metrics.items():
+            #     print(k, sum(v) / len(v))
+
+            
         
         
         
