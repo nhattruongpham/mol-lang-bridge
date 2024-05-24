@@ -80,7 +80,7 @@ def main():
         tokenizer=tokenizer,
         split=args.split,
         corrupt_prob=0.0,
-        dataset_name="ndhieunguyen/LPM-24",
+        dataset_name="language-plus-molecules/LPM-24_eval-molgen",
     )
     validation_dataloader = DataLoader(
         validation_dataset,
