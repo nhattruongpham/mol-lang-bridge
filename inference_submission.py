@@ -124,8 +124,10 @@ def main():
             )
 
             # outputs = torch.concat(outputs, dim=0)
-            logits = model.get_logits(torch.tensor(outputs))  # bsz, seqlen, vocab
-            # logits = model.get_logits(torch.tensor(outputs).cuda())  # bsz, seqlen, vocab
+            # logits = model.get_logits(torch.tensor(outputs))  # bsz, seqlen, vocab
+            logits = model.get_logits(
+                torch.tensor(outputs).cuda()
+            )  # bsz, seqlen, vocab
             cands = torch.topk(logits, k=1, dim=-1)
             outputs = cands.indices
             outputs = outputs.squeeze(-1)
