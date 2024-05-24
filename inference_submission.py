@@ -88,9 +88,9 @@ def main():
         diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
     )
 
-    next_batch_start = 0
     print(f"Batch size: {args.batch_size}")
-    next_batch_end = args.batch_size
+    next_batch_start = args.start
+    next_batch_end = next_batch_start + args.batch_size
     all_outputs = []
     all_caption = []
     pbar = tqdm(
@@ -129,6 +129,19 @@ def main():
         outputs = outputs.squeeze(-1)
         outputs = tokenizer.decode(outputs)
 
+        with open(args.outputdir.replace(".txt", "_submission.txt"), "a") as f:
+            for i, x in enumerate(outputs):
+                f.write(
+                    sf.decoder(
+                        x.replace("<pad>", "").replace("</s>", "").replace("\t", "")
+                    ).replace("\t", "")
+                    + "\n"
+                )
+
+        with open(args.outputdir.replace(".txt", "_captions.txt"), "a") as f:
+            for i, x in enumerate(outputs):
+                f.write(caption[i] + "\n")
+
         all_outputs += outputs
         all_caption += caption
 
@@ -139,11 +152,11 @@ def main():
         if next_batch_start == len(validation_dataset):
             break
 
-    with open(args.outputdir.replace(".txt", "_submission.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_final_submission.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(sf.decoder(x.replace("<pad>", "").replace("</s>", "")) + "\n")
 
-    with open(args.outputdir.replace(".txt", "_captions.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_final_captions.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(all_caption[i] + "\n")
 
@@ -151,7 +164,6 @@ def main():
 def create_argparser():
     defaults = dict(
         clip_denoised=False,
-        batch_size=64,
         mbr_sample=1,
         model_path="",
         model_arch="conv-unet",
@@ -173,13 +185,14 @@ def create_argparser():
         preprocessing_num_workers=1,
         emb_scale_factor=1.0,
         clamp="clamp",
-        split="validation",
+        split="train",
         model_path="checkpoints/PLAIN_ema_0.9999_500000.pt",
         use_ddim=False,
-        batch_size=2,
+        batch_size=1024,
         top_p=1.0,
         outputdir="output.txt",
         diffusion_steps=2000,
+        start=0,
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
@@ -189,5 +202,4 @@ def create_argparser():
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     main()
