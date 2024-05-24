@@ -99,35 +99,40 @@ def main():
         else len(validation_dataset) // args.batch_size
     )
     while True:
-        sample = [
-            (
-                validation_dataset[i]["caption_state"],
-                validation_dataset[i]["caption_mask"],
-                validation_dataset[i]["caption"],
+        try:
+            sample = [
+                (
+                    validation_dataset[i]["caption_state"],
+                    validation_dataset[i]["caption_mask"],
+                    validation_dataset[i]["caption"],
+                )
+                for i in range(next_batch_start, next_batch_end)
+            ]
+            caption_state = torch.concat([i[0] for i in sample], dim=0)
+            caption_mask = torch.concat([i[1] for i in sample], dim=0)
+            caption = [i[2] for i in sample]
+
+            outputs = sample_fn(
+                model,
+                (args.batch_size, 256, model.in_channels),
+                clip_denoised=args.clip_denoised,
+                denoised_fn=None,
+                model_kwargs={},
+                top_p=args.top_p,
+                progress=True,
+                caption=(caption_state, caption_mask),
             )
-            for i in range(next_batch_start, next_batch_end)
-        ]
-        caption_state = torch.concat([i[0] for i in sample], dim=0)
-        caption_mask = torch.concat([i[1] for i in sample], dim=0)
-        caption = [i[2] for i in sample]
 
-        outputs = sample_fn(
-            model,
-            (args.batch_size, 256, model.in_channels),
-            clip_denoised=args.clip_denoised,
-            denoised_fn=None,
-            model_kwargs={},
-            top_p=args.top_p,
-            progress=True,
-            caption=(caption_state, caption_mask),
-        )
+            # outputs = torch.concat(outputs, dim=0)
+            logits = model.get_logits(torch.tensor(outputs))  # bsz, seqlen, vocab
+            # logits = model.get_logits(torch.tensor(outputs).cuda())  # bsz, seqlen, vocab
+            cands = torch.topk(logits, k=1, dim=-1)
+            outputs = cands.indices
+            outputs = outputs.squeeze(-1)
+            outputs = tokenizer.decode(outputs)
 
-        # outputs = torch.concat(outputs, dim=0)
-        logits = model.get_logits(torch.tensor(outputs).cuda())  # bsz, seqlen, vocab
-        cands = torch.topk(logits, k=1, dim=-1)
-        outputs = cands.indices
-        outputs = outputs.squeeze(-1)
-        outputs = tokenizer.decode(outputs)
+        except:
+            outputs = ["Error"] * args.batch_size
 
         with open(args.outputdir.replace(".txt", "_submission.txt"), "a") as f:
             for i, x in enumerate(outputs):
