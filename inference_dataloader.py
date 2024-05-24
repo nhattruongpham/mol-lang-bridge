@@ -12,7 +12,7 @@ from src.improved_diffusion.script_util import (
     model_and_diffusion_defaults,
     add_dict_to_argparser,
 )
-from src.scripts.mydatasets import Lang2molDataset_2, get_dataloader
+from src.scripts.mydatasets import Lang2molDataset_3, get_dataloader
 import selfies as sf
 from tqdm import tqdm
 
@@ -22,15 +22,11 @@ os.system(f"huggingface-cli login --token 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"
 def collate(batch):
     caption_state = [i["caption_state"] for i in batch]
     caption_mask = [i["caption_mask"] for i in batch]
-    selfies = [i["selfies"] for i in batch]
     caption = [i["caption"] for i in batch]
-    canonical = [i["canonical"] for i in batch]
     return (
         torch.concat(caption_state, dim=0),
         torch.concat(caption_mask, dim=0),
-        selfies,
         caption,
-        canonical,
     )
 
 
@@ -79,7 +75,7 @@ def main():
     print(f"Loading {args.split} set")
     print("--" * 30)
 
-    validation_dataset = Lang2molDataset_2(
+    validation_dataset = Lang2molDataset_3(
         dir=args.dataset_path,
         tokenizer=tokenizer,
         split=args.split,
@@ -104,13 +100,9 @@ def main():
     )
     print(f"Batch size: {args.batch_size}")
     all_outputs = []
-    all_selfies = []
-    all_caption = []
-    all_canonical = []
+    all_captions = []
 
-    for caption_state, caption_mask, selfies, caption, canonical in tqdm(
-        validation_dataloader
-    ):
+    for caption_state, caption_mask, caption in tqdm(validation_dataloader):
         outputs = sample_fn(
             model,
             (args.batch_size, 256, model.in_channels),
@@ -130,29 +122,15 @@ def main():
         outputs = tokenizer.decode(outputs)
 
         all_outputs += outputs
-        all_selfies += selfies
-        all_caption += caption
-        all_canonical += canonical
+        all_captions += caption
 
-    with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_submission.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
-            f.write(
-                sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
-                + "   ||   "
-                + all_canonical[i]
-                + "\n"
-            )
+            f.write(sf.decoder(x.replace("<pad>", "").replace("</s>", "")) + "\n")
 
-    with open(args.outputdir.replace(".txt", "_2.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_captions.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
-            f.write(
-                all_caption[i]
-                + "\t"
-                + all_canonical[i]
-                + "\t"
-                + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
-                + "\n"
-            )
+            f.write(all_captions[i] + "\n")
 
 
 def create_argparser():
