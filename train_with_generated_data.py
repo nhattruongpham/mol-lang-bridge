@@ -39,7 +39,12 @@ def main_worker(rank, world_size):
         num_attention_heads=args.model_num_attention_heads,
         num_hidden_layers=args.model_num_hidden_layers,
     )
-    # model.train()
+    if args.model_path != "":
+        model.load_state_dict(
+            dist_util.load_state_dict(args.model_path, map_location="cpu")
+        )
+
+    model.train()
 
     print("Total params:", sum(p.numel() for p in model.parameters()))
     print(
@@ -160,6 +165,7 @@ def create_argparser():
         model_num_attention_heads=16,
         model_num_hidden_layers=12,
         dataset_name="ndhieunguyen/LPM-24-extra",
+        model_path="",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
