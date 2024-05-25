@@ -107,35 +107,18 @@ class MultimodalMoleculeCaptioning(Dataset):
         }
 
 def get_dataloaders(args, tokenizer, batch_size=8, num_workers=4, split='train', is_inference=False):
-    if split == 'train':
-        return DataLoader(
-            MultimodalMoleculeCaptioning(
-                args,
-                tokenizer=tokenizer,
-                dataset_name_or_path=args.dataset_name_or_path,
-                split='train',
-                input_max_length=512,
-                output_max_length=512,
-                is_inference=is_inference
-            ),
-            batch_size=batch_size,
-            num_workers=num_workers,
-            shuffle=True,
-            pin_memory=True
-        )
-    elif split == 'validation':
-        return DataLoader(
-            MultimodalMoleculeCaptioning(
-                args,
-                tokenizer=tokenizer,
-                dataset_name_or_path=args.dataset_name_or_path,
-                split='validation',
-                input_max_length=512,
-                output_max_length=512,
-                is_inference=is_inference
-            ),
-            batch_size=batch_size,
-            num_workers=num_workers,
-            shuffle=False,
-            pin_memory=True
-        )
+    return DataLoader(
+        MultimodalMoleculeCaptioning(
+            args,
+            tokenizer=tokenizer,
+            dataset_name_or_path=args.dataset_name_or_path,
+            split=split,
+            input_max_length=512,
+            output_max_length=512,
+            is_inference=is_inference
+        ),
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=(split == 'train'),
+        pin_memory=True
+    )

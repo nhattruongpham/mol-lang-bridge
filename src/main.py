@@ -16,8 +16,21 @@ def main(args):
     device = torch.device('cuda' if args.cuda else 'cpu')
     tokenizer = AutoTokenizer.from_pretrained(args.t5.pretrained_model_name_or_path)
     tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>']) # Add greek symbol, <boc> is start_of_caption, <eoc> is end_of_caption
+    
+    if args.dataset_name == 'lpm-24':
+        args.dataset_name_or_path = 'ndhieunguyen/LPM-24'
+    elif args.dataset_name == 'chebi-20':
+        args.dataset_name_or_path = 'duongttr/chebi-20-new'
+    else:
+        raise Exception('Dataset name is invalid, please choose one in two: lpm-24, chebi-20')
+    
     train_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
     val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
+    
+    if args.dataset_name == 'lpm-24':
+        test_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
+    elif args.dataset_name == 'chebi-20':
+        test_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='test')
     
     args.train_data_len = len(train_dataloader) // args.grad_accum
     args.tokenizer = Namespace()
@@ -26,16 +39,23 @@ def main(args):
     model = T5MultimodalModel(args)
     model.resize_token_embeddings(len(tokenizer)) ## Resize due to adding new tokens
     model.to(device)
-    
-    print(model)
+    model.tokenizer = tokenizer
 
-    ckpt_callback = ModelCheckpoint(
-        dirpath=args.output_folder,
-        filename='ckpt_{eval_loss}',
-        save_top_k=5,
+    on_best_eval_loss_callback = ModelCheckpoint(
+        dirpath=os.path.join(args.output_folder, "best_eval"),
+        filename='ckpt_eval_loss_{eval_loss}_bleu2_{bleu2}',
+        save_top_k=3,
         verbose=True,
         monitor='eval_loss',
         mode='min'
+    )
+    on_best_bleu2_callback = ModelCheckpoint(
+        dirpath=os.path.join(args.output_folder, "best_bleu2"),
+        filename='ckpt_bleu2_{bleu2}_eval_loss_{eval_loss}',
+        save_top_k=3,
+        verbose=True,
+        monitor='bleu2',
+        mode='max'
     )
     
     wandb_logger = WandbLogger(log_model=False,
@@ -45,7 +65,7 @@ def main(args):
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     trainer = pl.Trainer(
-        callbacks=[ckpt_callback, lr_monitor],
+        callbacks=[on_best_eval_loss_callback, on_best_bleu2_callback, lr_monitor],
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
         devices=args.num_devices,
@@ -56,7 +76,7 @@ def main(args):
         deterministic=True
     )
 
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=[val_dataloader, test_dataloader])
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -70,8 +90,8 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=3e-5)
     parser.add_argument('--warmup_ratio', type=float, default=0.01)
     parser.add_argument('--precision', type=str, default='32')
-    parser.add_argument('--dataset_name_or_path', type=str, default='duongttr/chebi-20-new')
-    parser.add_argument('--model_config', type=str, default='src/configs/config_use_v_nofg.yaml')
+    parser.add_argument('--dataset_name', type=str, default='lpm-24')
+    parser.add_argument('--model_config', type=str, default='src/configs/config_main.yaml')
     parser.add_argument('--output_folder', type=str, default='ckpt/')
     
     args = parser.parse_args()

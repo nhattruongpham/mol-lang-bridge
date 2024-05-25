@@ -5,7 +5,9 @@ from backbones.vision.swin import SwinTransformer
 import torch
 from torch import optim
 import math
+from translation_metrics import Mol2Text_translation
 
+evaluator = Mol2Text_translation()
 class T5MultimodalModel(pl.LightningModule):
     def __init__(self, args):
         super().__init__()
@@ -54,6 +56,27 @@ class T5MultimodalModel(pl.LightningModule):
         
     def resize_token_embeddings(self, len_embeddings):
         self.t5_model.resize_token_embeddings(len_embeddings)
+        
+    def __prepare_inputs(self, batch):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        smiles_input_ids = batch['smiles_input_ids']
+        smiles_attention_mask = batch['smiles_attention_mask']
+        labels = batch["labels"]
+        images = batch['images']
+        
+        image_features = None
+        smiles_features = None
+        
+        with torch.no_grad():
+            if self.args.multimodal.use_visual_feature:
+                image_features = self.swin_model.forward_features(images, avgpool=False)
+            
+            if self.args.multimodal.use_smiles_feature:
+                smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
+                                                    attention_mask=smiles_attention_mask).last_hidden_state
+        
+        return input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features
     
     def forward(self, input_ids, 
                 attention_mask, 
@@ -75,54 +98,26 @@ class T5MultimodalModel(pl.LightningModule):
         return output.loss, output.logits
     
     def training_step(self, batch, batch_idx):
-        input_ids = batch['input_ids']
-        attention_mask = batch['attention_mask']
-        smiles_input_ids = batch['smiles_input_ids']
-        smiles_attention_mask = batch['smiles_attention_mask']
-        labels = batch['labels']
-        images = batch['images']
+        input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features = self.__prepare_inputs(batch)
         
-        image_features = None
-        smiles_features = None
-        
-        with torch.no_grad():
-            if self.args.multimodal.use_visual_feature:
-                image_features = self.swin_model.forward_features(images, avgpool=False)
-            
-            if self.args.multimodal.use_smiles_feature:
-                smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
-                                                    attention_mask=smiles_attention_mask).last_hidden_state
-        
-        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
+        loss, _ = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
         
         self.log("train_loss", loss, prog_bar=True, logger=True)
         
         return loss
     
-    def validation_step(self, batch, batch_idx):
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        smiles_input_ids = batch['smiles_input_ids']
-        smiles_attention_mask = batch['smiles_attention_mask']
-        labels = batch["labels"]
-        images = batch['images']
-        
-        image_features = None
-        smiles_features = None
-        
-        with torch.no_grad():
-            if self.args.multimodal.use_visual_feature:
-                image_features = self.swin_model.forward_features(images, avgpool=False)
+    def validation_step(self, batch, batch_idx, dataloader_idx):
+        input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features = self.__prepare_inputs(batch)
+        if dataloader_idx == 0: # validation set
+            loss, _ = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
+            self.log('eval_loss', loss, prog_bar=True, logger=True)
+        elif dataloader_idx == 1: # test set
+            gt_caption = batch['caption']
+            pred_caption = self.generate_captioning(batch)
+            eval_metrics = evaluator(pred_caption, gt_caption)
+            self.log_dict(eval_metrics)
             
-            if self.args.multimodal.use_smiles_feature:
-                smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
-                                                    attention_mask=smiles_attention_mask).last_hidden_state
         
-        loss, logits = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
-        
-        self.log('eval_loss', loss, prog_bar=True, logger=True)
-        
-        return loss
     
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.args.lr)
@@ -142,24 +137,10 @@ class T5MultimodalModel(pl.LightningModule):
                             decoder_start_token_id=0,
                             eos_token_id=1,
                             pad_token_id=0):
-        
-        input_ids = inputs["input_ids"]
-        smiles_input_ids = inputs['smiles_input_ids']
-        smiles_attention_mask = inputs['smiles_attention_mask']
-        images = inputs['images']
-        
-        image_features = None
-        smiles_features = None
-        with torch.no_grad():
-            if self.args.multimodal.use_visual_feature:
-                image_features = self.swin_model.forward_features(images, avgpool=False)
-            
-            if self.args.multimodal.use_smiles_feature:
-                smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
-                                                    attention_mask=smiles_attention_mask).last_hidden_state
-        
+        input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features = self.__prepare_inputs(inputs)
         outputs = self.t5_model.generate(
             input_ids = input_ids,
+            attention_mask=attention_mask,
             image_features=image_features,
             smiles_features=smiles_features,
             smiles_attention_mask=smiles_attention_mask,
@@ -169,6 +150,8 @@ class T5MultimodalModel(pl.LightningModule):
             eos_token_id=eos_token_id,
             pad_token_id=pad_token_id
         )
+        
+        outputs = [s.strip() for s in self.tokenizer.batch_decode(outputs, skip_special_tokens=True)]
         
         return outputs
         

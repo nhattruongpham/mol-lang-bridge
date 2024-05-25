@@ -38,14 +38,6 @@ def main(args):
     
     os.makedirs(os.path.dirname(args.output_csv), exist_ok=True) 
 
-    # avg_metrics = {
-    #     "bleu2": [],
-    #     "bleu4": [],
-    #     "rouge1": [],
-    #     "rouge2": [],
-    #     "rougeL": [],
-    #     "meteor": [],
-    # }
     with open(args.output_csv, 'w') as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=['smiles', 'selfies', 'gt_caption', 'pred_caption'])
         writer.writeheader()
@@ -68,11 +60,6 @@ def main(args):
             print(pred_captions)
             output_metric = evaluator(pred_captions, gt_captions)
             print(output_metric)
-            # for k, v in output_metric.items():
-            #     avg_metrics[k].append(v)
-
-            # for k, v in avg_metrics.items():
-            #     print(k, sum(v) / len(v))
 
             
         
