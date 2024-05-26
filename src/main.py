@@ -73,7 +73,8 @@ def main(args):
         gradient_clip_val=10.0,
         logger=[wandb_logger],
         accumulate_grad_batches=args.grad_accum,
-        deterministic=True
+        deterministic=True,
+        check_val_every_n_epoch=2
     )
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=[val_dataloader, test_dataloader])
