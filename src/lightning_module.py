@@ -6,6 +6,7 @@ import torch
 from torch import optim
 import math
 from translation_metrics import Mol2Text_translation
+import contextlib
 
 evaluator = Mol2Text_translation()
 class T5MultimodalModel(pl.LightningModule):
@@ -41,17 +42,20 @@ class T5MultimodalModel(pl.LightningModule):
             self.swin_model.load_state_dict(
                 torch.load(args.swin.pretrained_model_path)['encoder']
             )
-        
-            self.swin_model.eval()
-            for p in self.swin_model.parameters():
-                p.requires_grad = False
+
+            if not args.multimodal.trainable_visual:
+                self.swin_model.eval()
+                for p in self.swin_model.parameters():
+                    p.requires_grad = False
         
         if args.multimodal.use_smiles_feature:
             # Initialize text model
             self.roberta_model = RobertaModel.from_pretrained(args.roberta.pretrained_model_name_or_path)
-            self.roberta_model.eval()
-            for p in self.roberta_model.parameters():
-                p.requires_grad = False
+            
+            if not args.multimodal.trainable_smiles:
+                self.roberta_model.eval()
+                for p in self.roberta_model.parameters():
+                    p.requires_grad = False
         
         
     def resize_token_embeddings(self, len_embeddings):
@@ -68,12 +72,21 @@ class T5MultimodalModel(pl.LightningModule):
         image_features = None
         smiles_features = None
         
-        with torch.no_grad():
-            if self.args.multimodal.use_visual_feature:
+        
+        if self.args.multimodal.use_visual_feature:
+            if self.args.multimodal.trainable_visual:
                 image_features = self.swin_model.forward_features(images, avgpool=False)
+            else:
+                with torch.no_grad():
+                    image_features = self.swin_model.forward_features(images, avgpool=False)
             
-            if self.args.multimodal.use_smiles_feature:
+        if self.args.multimodal.use_smiles_feature:
+            if self.args.multimodal.trainable_smiles:
                 smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
+                                                    attention_mask=smiles_attention_mask).last_hidden_state
+            else:
+                with torch.no_grad():
+                    smiles_features = self.roberta_model(input_ids=smiles_input_ids, 
                                                     attention_mask=smiles_attention_mask).last_hidden_state
         
         return input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features

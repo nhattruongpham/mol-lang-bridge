@@ -14,7 +14,9 @@ multimodal:
   fusion_encoder_layers: [10,11]
   fusion_decoder_layers: [0,1]
   use_visual_feature: true
+  trainable_visual: false
   use_smiles_feature: true
+  trainable_smiles: false
   use_forget_gate: true
   visual_feature_dim: 1536
   text_feature_dim: 768
