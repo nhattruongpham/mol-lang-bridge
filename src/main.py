@@ -43,18 +43,18 @@ def main(args):
 
     on_best_eval_loss_callback = ModelCheckpoint(
         dirpath=os.path.join(args.output_folder, "best_eval"),
-        filename='ckpt_eval_loss_{eval_loss}_bleu2_{bleu2}',
+        filename='ckpt_eval_loss_{eval_loss/dataloader_idx_0}',
         save_top_k=3,
         verbose=True,
-        monitor='eval_loss',
+        monitor='eval_loss/dataloader_idx_0',
         mode='min'
     )
     on_best_bleu2_callback = ModelCheckpoint(
         dirpath=os.path.join(args.output_folder, "best_bleu2"),
-        filename='ckpt_bleu2_{bleu2}_eval_loss_{eval_loss}',
+        filename='ckpt_bleu2_{bleu2/dataloader_idx_1}',
         save_top_k=3,
         verbose=True,
-        monitor='bleu2',
+        monitor='bleu2/dataloader_idx_1',
         mode='max'
     )
     
