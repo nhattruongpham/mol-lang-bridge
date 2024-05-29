@@ -133,6 +133,26 @@ def main():
         outputs = outputs.squeeze(-1)
         outputs = tokenizer.decode(outputs)
 
+        with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
+            for i, x in enumerate(all_outputs):
+                f.write(
+                    sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
+                    + "   ||   "
+                    + all_canonical[i]
+                    + "\n"
+                )
+
+        with open(args.outputdir.replace(".txt", "_2.txt"), "w") as f:
+            for i, x in enumerate(all_outputs):
+                f.write(
+                    all_caption[i]
+                    + "\t"
+                    + all_canonical[i]
+                    + "\t"
+                    + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
+                    + "\n"
+                )
+
         all_outputs += outputs
         all_caption += caption
         all_canonical += canonical
@@ -144,7 +164,7 @@ def main():
         if next_batch_start == len(validation_dataset):
             break
 
-    with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_1_final.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(
                 sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
@@ -153,7 +173,7 @@ def main():
                 + "\n"
             )
 
-    with open(args.outputdir.replace(".txt", "_2.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_2_final.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(
                 all_caption[i]

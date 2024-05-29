@@ -78,6 +78,7 @@ def main():
         split="train",  # validation dataset with split named "train" :))))
         corrupt_prob=0.0,
         dataset_name="language-plus-molecules/LPM-24_eval-molgen",
+        token_max_length=args.token_max_length,
     )
     print("-------------------- DATASET INFO --------------------")
     print(f"Size: {len(validation_dataset)} samples")
@@ -193,13 +194,14 @@ def create_argparser():
         emb_scale_factor=1.0,
         clamp="clamp",
         split="train",
-        model_path="checkpoints/PLAIN_ema_0.9999_500000.pt",
+        model_path="checkpoints/PLAIN_ema_0.9999_1000000.pt",
         use_ddim=False,
-        batch_size=1024,
+        batch_size=245,
         top_p=1.0,
-        outputdir="output.txt",
+        outputdir="output_512_1000000.txt",
         diffusion_steps=2000,
         start=0,
+        token_max_length=512,
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
