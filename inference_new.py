@@ -77,7 +77,7 @@ def main():
         tokenizer=tokenizer,
         split=args.split,
         corrupt_prob=0.0,
-        token_max_length=512,
+        token_max_length=args.token_max_length,
         dataset_name="ndhieunguyen/LPM-24",
     )
     print("-------------------- DATASET INFO --------------------")
@@ -89,11 +89,10 @@ def main():
         diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
     )
 
-    next_batch_start = 0
     print(f"Batch size: {args.batch_size}")
-    next_batch_end = args.batch_size
+    next_batch_start = args.start
+    next_batch_end = next_batch_start + args.batch_size
     all_outputs = []
-    all_selfies = []
     all_caption = []
     all_canonical = []
     pbar = tqdm(
@@ -106,7 +105,6 @@ def main():
             (
                 validation_dataset[i]["caption_state"],
                 validation_dataset[i]["caption_mask"],
-                validation_dataset[i]["selfies"],
                 validation_dataset[i]["caption"],
                 validation_dataset[i]["canonical"],
             )
@@ -114,9 +112,8 @@ def main():
         ]
         caption_state = torch.concat([i[0] for i in sample], dim=0)
         caption_mask = torch.concat([i[1] for i in sample], dim=0)
-        selfies = [i[2] for i in sample]
-        caption = [i[3] for i in sample]
-        canonical = [i[4] for i in sample]
+        caption = [i[2] for i in sample]
+        canonical = [i[3] for i in sample]
 
         outputs = sample_fn(
             model,
@@ -137,7 +134,6 @@ def main():
         outputs = tokenizer.decode(outputs)
 
         all_outputs += outputs
-        all_selfies += selfies
         all_caption += caption
         all_canonical += canonical
 
@@ -200,6 +196,8 @@ def create_argparser():
         top_p=1.0,
         outputdir="output.txt",
         diffusion_steps=2000,
+        token_max_length=256,
+        start=0,
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)

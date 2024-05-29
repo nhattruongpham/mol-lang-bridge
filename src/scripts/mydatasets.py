@@ -307,17 +307,17 @@ class Lang2molDataset_eval(Dataset):
         }
 
         # Molecules
-        output_molecule = self.tokenizer(
-            sample["selfies"],
-            max_length=self.token_max_length,
-            truncation=True,
-            padding="max_length",
-            add_special_tokens=True,
-            return_tensors="pt",
-            return_attention_mask=True,
-        )
-        sample["selfies_ids"] = output_molecule["input_ids"]
-        sample["corrupted_selfies_ids"] = sample["selfies_ids"]
+        # output_molecule = self.tokenizer(
+        #     sample["selfies"],
+        #     max_length=self.token_max_length,
+        #     truncation=True,
+        #     padding="max_length",
+        #     add_special_tokens=True,
+        #     return_tensors="pt",
+        #     return_attention_mask=True,
+        # )
+        # sample["selfies_ids"] = output_molecule["input_ids"]
+        # sample["corrupted_selfies_ids"] = sample["selfies_ids"]
 
         # Captions
         output_caption = self.tokenizer(
