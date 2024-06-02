@@ -1,7 +1,0 @@
-selfies
-accelerate
-huggingface_hub[cli]
-rdkit
-datasets
-wandb
-levenshtein

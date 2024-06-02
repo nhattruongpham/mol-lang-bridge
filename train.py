@@ -13,9 +13,10 @@ from transformers import set_seed
 import torch.distributed as dist
 import wandb
 from src.scripts.mytokenizers import Tokenizer
-from src.scripts.mydatasets import get_dataloader, Lang2molDataset
+from src.scripts.mydatasets import get_dataloader, Lang2molDataset_2
 import warnings
 import torch.multiprocessing as mp
+
 
 def main_worker(rank, world_size):
     args = create_argparser().parse_args()
@@ -23,7 +24,7 @@ def main_worker(rank, world_size):
 
     wandb.login(key=args.wandb_token)
     wandb.init(
-        project="DiffusionLMRegexAug",
+        project="ACL_Lang2Mol",
         config=args.__dict__,
     )
 
@@ -38,6 +39,11 @@ def main_worker(rank, world_size):
         num_attention_heads=args.model_num_attention_heads,
         num_hidden_layers=args.model_num_hidden_layers,
     )
+    if args.model_path != "":
+        model.load_state_dict(
+            dist_util.load_state_dict(args.model_path, map_location="cpu")
+        )
+
     model.train()
 
     print("Total params:", sum(p.numel() for p in model.parameters()))
@@ -48,8 +54,8 @@ def main_worker(rank, world_size):
     print("Tokenizer vocab length:", len(tokenizer))
 
     diffusion = SpacedDiffusion(
-        use_timesteps=[i for i in range(2000)],
-        betas=gd.get_named_beta_schedule("sqrt", 2000),
+        use_timesteps=[i for i in range(args.diffusion_steps)],
+        betas=gd.get_named_beta_schedule("sqrt", args.diffusion_steps),
         model_mean_type=(gd.ModelMeanType.START_X),
         model_var_type=((gd.ModelVarType.FIXED_LARGE)),
         loss_type=gd.LossType.E2E_MSE,
@@ -61,15 +67,17 @@ def main_worker(rank, world_size):
     schedule_sampler = create_named_schedule_sampler("uniform", diffusion)
 
     print("Loading data...")
-    train_dataset = Lang2molDataset(
+    train_dataset = Lang2molDataset_2(
         dir=args.dataset_path,
         tokenizer=tokenizer,
         split="train",
         corrupt_prob=0.0,
+        token_max_length=512,
+        dataset_name=args.dataset_name,
     )
     dataloader = get_dataloader(train_dataset, args.batch_size, rank, world_size)
-    print('Finish loading data')
-    
+    print("Finish loading data")
+
     TrainLoop(
         model=model,
         diffusion=diffusion,
@@ -98,19 +106,15 @@ def create_argparser():
     defaults = dict()
     text_defaults = dict(
         wandb_token="e7ec68f70281e418d89a918a45859f150aef9405",
-        attention_resolutions="16,8",
-        batch_size=64,
+        batch_size=8,
         cache_mode="no",
         checkpoint_path="checkpoints",
         class_cond=False,
         config="ll",
         config_name="QizhiPei/biot5-base-text2mol",
-        data_dir="",
         dataset_path="dataset",
-        dataset_config_name="wikitext-2-raw-v1",
-        dataset_name="wikitext",
         diffusion_steps=2000,
-        dropout=0.1,
+        dropout=0.01,
         e2e_train="",
         ema_rate="0.9999",
         emb_scale_factor=1.0,
@@ -122,14 +126,14 @@ def create_argparser():
         image_size=8,
         in_channel=16,
         learn_sigma=False,
-        log_interval=20,
+        log_interval=1000,
         logits_mode=1,
-        lr=0.0001,
-        lr_anneal_steps=100000,
+        lr=0.00005,
+        lr_anneal_steps=1000000,
         microbatch=-1,
         modality="e2e-tgt",
         model_arch="transformer",
-        model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
+        # model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
         noise_level=0.0,
         noise_schedule="sqrt",
         num_channels=128,
@@ -143,7 +147,7 @@ def create_argparser():
         rescale_learned_sigmas=True,
         rescale_timesteps=True,
         resume_checkpoint="",
-        save_interval=1000,
+        save_interval=50000,
         schedule_sampler="uniform",
         seed=42,
         timestep_respacing="",
@@ -156,10 +160,12 @@ def create_argparser():
         weight_decay=0.0,
         model_in_channels=32,
         model_model_channels=128,
-        model_dropout=0.1,
+        model_dropout=0.01,
         model_hidden_size=1024,
         model_num_attention_heads=16,
         model_num_hidden_layers=12,
+        dataset_name="ndhieunguyen/LPM-24-extra",
+        model_path="",
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)

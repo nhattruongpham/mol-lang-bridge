@@ -1,40 +1,42 @@
-# Text-Guided Molecule Generation with Diffusion Language Model
+<h1 align="center">Lang2Mol-Diff</h1>
 
-![tgmdlm](pics/tgmdlm.png)
+<!-- ![tgmdlm](pics/tgmdlm.png) -->
+<p align="center">
+        📝 <a href="">Paper</a>｜🤗 <a href="">Demo</a> | 🚩<a href="">Checkpoints</a>
+</p>
 
-Accepted by AAAI-24, check our paper at https://arxiv.org/abs/2402.13040
-If you find it useful, please consider citing:
+This repository is the official implementation of [`Lang2Mol-Diff`: A Diffusion-Based Generative Model for Language-to-Molecule Translation Leveraging SELFIES Molecular String Representation](https://github.com/nhattruongpham/mol-lang-bridge/)
+
+## News
+- 2024.6.1: Submitted paper at [Language + Molecules @ ACL 2024 Workshop](https://language-plus-molecules.github.io/)
+
+## Dataset
+The [L+M-24-extra dataset](https://huggingface.co/datasets/language-plus-molecules/LPM-24_train-extra) was employed to train the model. Details regarding the data preprocessing methodology can be found in the accompanying paper. This process was utilized to construct a Huggingface dataset, featuring the following columns: `id`, `smiles`, `selfies`, and `caption`.
+
+## Dependencies and Installation
 ```
-@article{gong2024text,
-  title={Text-Guided Molecule Generation with Diffusion Language Model},
-  author={Haisong Gong and Qiang Liu and Shu Wu and Liang Wang},
-  journal={arXiv preprint arXiv:2402.13040},
-  year={2024}
-}
+conda env create -f environment.yaml
+conda activate molecule
 ```
-
----
-
-（This code is based on https://github.com/XiangLi1999/Diffusion-LM and https://github.com/blender-nlp/MolT5）
-
----
-
-## Preparation
-
-1. Install Package `cd TGMDLMCODE; pip install -e improved-diffusion/; pip install -e transformers/`.
-2. Download [Scibert](https://huggingface.co/allenai/scibert_scivocab_uncased) and put it into file `scibert`.
-
 
 ## Training
-1. `cd improved-diffusion; cd scripts`
-2. Encode text input `python process_text.py -i train_val_256; python process_text.py -i test`
-3. Train model for Phase One: `python train.py`
-4. Train model for Phase Two: `python train_correct_withmask.py`
+```
+python3 train.py
+```
 
-Note: For this model it always needs more than 100,000 steps of training before sampling so you can get a normal result. The perfomance converges long after the convergence of the loss. The loss may finally converges to around 0.015.
-
-## Sampling
-1. `python text_sample.py; python post_sample.py` The final file `OURMODEL_OUTPUT.txt` is our output.
+## Inferencing
+```
+python3 inference.py
+```
 
 ## Evaluation
-you can evaluate all metrics except for Text2Mol by runnning `ev.py`. For Text2Mol please go to [MolT5](https://github.com/blender-nlp/MolT5) for more details.
+You can follow the steps in https://github.com/language-plus-molecules/LPM-24-Dataset to evaluate the results of the model. 
+
+
+## References
+This code is based on https://github.com/CRIPAC-DIG/tgm-dlm/
+
+## Citation
+If you find it useful, please cite:
+```
+```
