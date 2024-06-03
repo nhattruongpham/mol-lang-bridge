@@ -1,6 +1,7 @@
 import os
-import torch
 import argparse
+from transformers import set_seed
+from src.scripts.mytokenizers import Tokenizer
 from src.improved_diffusion import gaussian_diffusion as gd
 from src.improved_diffusion.respace import SpacedDiffusion
 from src.improved_diffusion import dist_util
@@ -9,11 +10,9 @@ from src.improved_diffusion.resample import create_named_schedule_sampler
 from src.improved_diffusion.script_util import model_and_diffusion_defaults
 from src.improved_diffusion.script_util import add_dict_to_argparser
 from src.improved_diffusion.train_util import TrainLoop
-from transformers import set_seed
 import torch.distributed as dist
 import wandb
-from src.scripts.mytokenizers import Tokenizer
-from src.scripts.mydatasets import get_dataloader, Lang2molDataset_2
+from src.scripts.mydatasets import get_dataloader, Lang2molDataset_train
 import warnings
 import torch.multiprocessing as mp
 
@@ -67,7 +66,7 @@ def main_worker(rank, world_size):
     schedule_sampler = create_named_schedule_sampler("uniform", diffusion)
 
     print("Loading data...")
-    train_dataset = Lang2molDataset_2(
+    train_dataset = Lang2molDataset_train(
         dir=args.dataset_path,
         tokenizer=tokenizer,
         split="train",
@@ -105,8 +104,8 @@ def main_worker(rank, world_size):
 def create_argparser():
     defaults = dict()
     text_defaults = dict(
-        wandb_token="e7ec68f70281e418d89a918a45859f150aef9405",
-        batch_size=8,
+        wandb_token="",
+        batch_size=16,
         cache_mode="no",
         checkpoint_path="checkpoints",
         class_cond=False,
@@ -129,11 +128,10 @@ def create_argparser():
         log_interval=1000,
         logits_mode=1,
         lr=0.00005,
-        lr_anneal_steps=1000000,
+        lr_anneal_steps=5000000,
         microbatch=-1,
         modality="e2e-tgt",
         model_arch="transformer",
-        # model_name_or_path="predictability/diff_models/compress_e=5_b=60_m=gpt2_wikitext-103-raw-v1_None",
         noise_level=0.0,
         noise_schedule="sqrt",
         num_channels=128,

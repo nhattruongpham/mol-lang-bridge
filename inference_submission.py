@@ -1,27 +1,18 @@
-from src.scripts.mytokenizers import Tokenizer
-import argparse
-import os, json
 import torch
+import argparse
+import selfies as sf
+from tqdm import tqdm
 from transformers import set_seed
-from src.improved_diffusion.rounding import rounding_func, load_models, load_tokenizer
+from src.scripts.mytokenizers import Tokenizer
 from src.improved_diffusion import gaussian_diffusion as gd
-from src.improved_diffusion.respace import SpacedDiffusion, space_timesteps
-import numpy as np
 from src.improved_diffusion import dist_util, logger
+from src.improved_diffusion.respace import SpacedDiffusion
 from src.improved_diffusion.transformer_model import TransformerNetModel
-from src.improved_diffusion import dist_util, logger
-from functools import partial
 from src.improved_diffusion.script_util import (
-    NUM_CLASSES,
     model_and_diffusion_defaults,
     add_dict_to_argparser,
 )
-from src.scripts.mydatasets import Lang2molDataset_3
-import os
-import selfies as sf
-from tqdm import tqdm
-
-os.system(f"huggingface-cli login --token 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")
+from src.scripts.mydatasets import Lang2molDataset_submission
 
 
 def main():
@@ -72,7 +63,7 @@ def main():
     print(f"Loading {args.split} set")
     print("--" * 30)
 
-    validation_dataset = Lang2molDataset_3(
+    validation_dataset = Lang2molDataset_submission(
         dir=args.dataset_path,
         tokenizer=tokenizer,
         split="train",  # validation dataset with split named "train" :))))
