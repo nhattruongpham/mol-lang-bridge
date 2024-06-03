@@ -93,7 +93,7 @@ class Lang2molDataset_train(Dataset):
                 dataset["id"],
                 dataset["selfies"],
                 dataset["caption"],
-                dataset["molecule"],
+                dataset["smiles"],
             )
         ]
 
@@ -112,7 +112,7 @@ class Lang2molDataset_train(Dataset):
             "id": data[0],
             "selfies": self.permute(data[1]),
             "caption": data[2],
-            "molecule": data[3],
+            "smiles": data[3],
         }
 
         # Molecules
@@ -195,7 +195,7 @@ class Lang2molDataset_eval(Dataset):
                 dataset["id"],
                 dataset["selfies"],
                 dataset["caption"],
-                dataset["canonical"],
+                dataset["smiles"],
             )
         ]
 
@@ -214,7 +214,7 @@ class Lang2molDataset_eval(Dataset):
             "id": data[0],
             "selfies": self.permute(data[1]),
             "caption": data[2],
-            "canonical": data[3],
+            "smiles": data[3],
         }
 
         output_caption = self.tokenizer(
