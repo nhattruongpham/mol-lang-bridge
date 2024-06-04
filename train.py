@@ -128,7 +128,7 @@ def create_argparser():
         log_interval=1000,
         logits_mode=1,
         lr=0.00005,
-        lr_anneal_steps=5000000,
+        lr_anneal_steps=500000,
         microbatch=-1,
         modality="e2e-tgt",
         model_arch="transformer",
@@ -162,7 +162,7 @@ def create_argparser():
         model_hidden_size=1024,
         model_num_attention_heads=16,
         model_num_hidden_layers=12,
-        dataset_name="ndhieunguyen/LPM-24-extra",
+        dataset_name="",
         model_path="",
     )
     defaults.update(model_and_diffusion_defaults())

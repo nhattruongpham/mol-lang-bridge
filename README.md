@@ -21,14 +21,19 @@ conda activate molecule
 
 ## Training
 ```
-python3 train.py --wandb_token <WandB token> \
-                --dataset_name <huggingface dataset> \
-                --batch_size <batch size>
+python3 train.py \
+        --wandb_token <WandB token> \
+        --dataset_name <huggingface dataset> \
+        --batch_size <batch size>
+        --lr_anneal_steps <total training steps>
 ```
 
 ## Inferencing
 ```
-python3 inference.py
+python3 inference.py \
+        --dataset_name <huggingface dataset> \
+        --model_path <path to model checkpoint> \
+        --outputdir <text file>
 ```
 
 ## Evaluation

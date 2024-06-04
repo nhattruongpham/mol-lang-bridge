@@ -88,8 +88,8 @@ class Lang2molDataset_train(Dataset):
             ).sort("id")
 
         return [
-            (int(sample_id), sample_selfies, sample_caption, sample_canonical)
-            for (sample_id, sample_selfies, sample_caption, sample_canonical) in zip(
+            (int(sample_id), sample_selfies, sample_caption, sample_smiles)
+            for (sample_id, sample_selfies, sample_caption, sample_smiles) in zip(
                 dataset["id"],
                 dataset["selfies"],
                 dataset["caption"],
@@ -190,8 +190,8 @@ class Lang2molDataset_eval(Dataset):
             ).sort("id")
 
         return [
-            (int(sample_id), sample_selfies, sample_caption, sample_canonical)
-            for (sample_id, sample_selfies, sample_caption, sample_canonical) in zip(
+            (int(sample_id), sample_selfies, sample_caption, sample_smiles)
+            for (sample_id, sample_selfies, sample_caption, sample_smiles) in zip(
                 dataset["id"],
                 dataset["selfies"],
                 dataset["caption"],

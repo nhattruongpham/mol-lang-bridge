@@ -69,7 +69,7 @@ def main():
         split=args.split,
         corrupt_prob=0.0,
         token_max_length=args.token_max_length,
-        dataset_name="ndhieunguyen/LPM-24",
+        dataset_name=args.dataset_name,
     )
     print("-------------------- DATASET INFO --------------------")
     print(f"Size: {len(validation_dataset)} samples")
@@ -85,7 +85,7 @@ def main():
     next_batch_end = next_batch_start + args.batch_size
     all_outputs = []
     all_caption = []
-    all_canonical = []
+    all_smiles = []
     pbar = tqdm(
         total=len(validation_dataset) // args.batch_size + 1
         if len(validation_dataset) % args.batch_size != 0
@@ -97,14 +97,14 @@ def main():
                 validation_dataset[i]["caption_state"],
                 validation_dataset[i]["caption_mask"],
                 validation_dataset[i]["caption"],
-                validation_dataset[i]["canonical"],
+                validation_dataset[i]["smiles"],
             )
             for i in range(next_batch_start, next_batch_end)
         ]
         caption_state = torch.concat([i[0] for i in sample], dim=0)
         caption_mask = torch.concat([i[1] for i in sample], dim=0)
         caption = [i[2] for i in sample]
-        canonical = [i[3] for i in sample]
+        smiles = [i[3] for i in sample]
 
         outputs = sample_fn(
             model,
@@ -117,28 +117,18 @@ def main():
             caption=(caption_state, caption_mask),
         )
 
-        # outputs = torch.concat(outputs, dim=0)
-        logits = model.get_logits(torch.tensor(outputs).cuda())  # bsz, seqlen, vocab
+        logits = model.get_logits(torch.tensor(outputs).cuda())
         cands = torch.topk(logits, k=1, dim=-1)
         outputs = cands.indices
         outputs = outputs.squeeze(-1)
         outputs = tokenizer.decode(outputs)
 
-        with open(args.outputdir.replace(".txt", "_1.txt"), "w") as f:
-            for i, x in enumerate(all_outputs):
-                f.write(
-                    sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
-                    + "   ||   "
-                    + all_canonical[i]
-                    + "\n"
-                )
-
-        with open(args.outputdir.replace(".txt", "_2.txt"), "w") as f:
-            for i, x in enumerate(all_outputs):
+        with open(args.outputdir, "a") as f:
+            for i, x in enumerate(outputs):
                 f.write(
                     all_caption[i]
                     + "\t"
-                    + all_canonical[i]
+                    + all_smiles[i]
                     + "\t"
                     + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
                     + "\n"
@@ -146,7 +136,7 @@ def main():
 
         all_outputs += outputs
         all_caption += caption
-        all_canonical += canonical
+        all_smiles += smiles
 
         next_batch_start = next_batch_end
         next_batch_end = min(next_batch_end + args.batch_size, len(validation_dataset))
@@ -155,21 +145,12 @@ def main():
         if next_batch_start == len(validation_dataset):
             break
 
-    with open(args.outputdir.replace(".txt", "_1_final.txt"), "w") as f:
-        for i, x in enumerate(all_outputs):
-            f.write(
-                sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
-                + "   ||   "
-                + all_canonical[i]
-                + "\n"
-            )
-
-    with open(args.outputdir.replace(".txt", "_2_final.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_final.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(
                 all_caption[i]
                 + "\t"
-                + all_canonical[i]
+                + all_smiles[i]
                 + "\t"
                 + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
                 + "\n"
@@ -186,7 +167,7 @@ def create_argparser():
     )
     text_defaults = dict(
         modality="text",
-        dataset_name="wikitext",
+        dataset_name="",
         dataset_config_name="wikitext-2-raw-v1",
         dataset_path="dataset",
         experiment="gpt2_pre_compress",
@@ -201,9 +182,9 @@ def create_argparser():
         emb_scale_factor=1.0,
         clamp="clamp",
         split="validation",
-        model_path="checkpoints/PLAIN_ema_0.9999_500000.pt",
+        model_path="",
         use_ddim=False,
-        batch_size=2,
+        batch_size=16,
         top_p=1.0,
         outputdir="output.txt",
         diffusion_steps=2000,

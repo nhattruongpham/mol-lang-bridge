@@ -66,10 +66,10 @@ def main():
     validation_dataset = Lang2molDataset_submission(
         dir=args.dataset_path,
         tokenizer=tokenizer,
-        split="train",  # validation dataset with split named "train" :))))
+        split=args.split,
         corrupt_prob=0.0,
-        dataset_name="language-plus-molecules/LPM-24_eval-molgen",
         token_max_length=args.token_max_length,
+        dataset_name=args.dataset_name,
     )
     print("-------------------- DATASET INFO --------------------")
     print(f"Size: {len(validation_dataset)} samples")
@@ -91,44 +91,36 @@ def main():
         else len(validation_dataset) // args.batch_size
     )
     while True:
-        try:
-            sample = [
-                (
-                    validation_dataset[i]["caption_state"],
-                    validation_dataset[i]["caption_mask"],
-                    validation_dataset[i]["caption"],
-                )
-                for i in range(next_batch_start, next_batch_end)
-            ]
-            caption_state = torch.concat([i[0] for i in sample], dim=0)
-            caption_mask = torch.concat([i[1] for i in sample], dim=0)
-            caption = [i[2] for i in sample]
-
-            outputs = sample_fn(
-                model,
-                (args.batch_size, 256, model.in_channels),
-                clip_denoised=args.clip_denoised,
-                denoised_fn=None,
-                model_kwargs={},
-                top_p=args.top_p,
-                progress=True,
-                caption=(caption_state, caption_mask),
+        sample = [
+            (
+                validation_dataset[i]["caption_state"],
+                validation_dataset[i]["caption_mask"],
+                validation_dataset[i]["caption"],
             )
+            for i in range(next_batch_start, next_batch_end)
+        ]
+        caption_state = torch.concat([i[0] for i in sample], dim=0)
+        caption_mask = torch.concat([i[1] for i in sample], dim=0)
+        caption = [i[2] for i in sample]
 
-            # outputs = torch.concat(outputs, dim=0)
-            # logits = model.get_logits(torch.tensor(outputs))  # bsz, seqlen, vocab
-            logits = model.get_logits(
-                torch.tensor(outputs).cuda()
-            )  # bsz, seqlen, vocab
-            cands = torch.topk(logits, k=1, dim=-1)
-            outputs = cands.indices
-            outputs = outputs.squeeze(-1)
-            outputs = tokenizer.decode(outputs)
+        outputs = sample_fn(
+            model,
+            (args.batch_size, 256, model.in_channels),
+            clip_denoised=args.clip_denoised,
+            denoised_fn=None,
+            model_kwargs={},
+            top_p=args.top_p,
+            progress=True,
+            caption=(caption_state, caption_mask),
+        )
 
-        except:
-            outputs = ["Error"] * args.batch_size
+        logits = model.get_logits(torch.tensor(outputs).cuda())
+        cands = torch.topk(logits, k=1, dim=-1)
+        outputs = cands.indices
+        outputs = outputs.squeeze(-1)
+        outputs = tokenizer.decode(outputs)
 
-        with open(args.outputdir.replace(".txt", "_submission.txt"), "a") as f:
+        with open(args.outputdir, "a") as f:
             for i, x in enumerate(outputs):
                 f.write(
                     sf.decoder(
@@ -136,10 +128,6 @@ def main():
                     ).replace("\t", "")
                     + "\n"
                 )
-
-        with open(args.outputdir.replace(".txt", "_captions.txt"), "a") as f:
-            for i, x in enumerate(outputs):
-                f.write(caption[i] + "\n")
 
         all_outputs += outputs
         all_caption += caption
@@ -151,13 +139,9 @@ def main():
         if next_batch_start == len(validation_dataset):
             break
 
-    with open(args.outputdir.replace(".txt", "_final_submission.txt"), "w") as f:
+    with open(args.outputdir.replace(".txt", "_final.txt"), "w") as f:
         for i, x in enumerate(all_outputs):
             f.write(sf.decoder(x.replace("<pad>", "").replace("</s>", "")) + "\n")
-
-    with open(args.outputdir.replace(".txt", "_final_captions.txt"), "w") as f:
-        for i, x in enumerate(all_outputs):
-            f.write(all_caption[i] + "\n")
 
 
 def create_argparser():
@@ -170,7 +154,7 @@ def create_argparser():
     )
     text_defaults = dict(
         modality="text",
-        dataset_name="wikitext",
+        dataset_name="language-plus-molecules/LPM-24_eval-molgen",
         dataset_config_name="wikitext-2-raw-v1",
         dataset_path="dataset",
         experiment="gpt2_pre_compress",
@@ -185,14 +169,14 @@ def create_argparser():
         emb_scale_factor=1.0,
         clamp="clamp",
         split="train",
-        model_path="checkpoints/PLAIN_ema_0.9999_1000000.pt",
+        model_path="",
         use_ddim=False,
-        batch_size=245,
+        batch_size=7,
         top_p=1.0,
-        outputdir="output_512_1000000.txt",
+        outputdir="output.txt",
         diffusion_steps=2000,
+        token_max_length=256,
         start=0,
-        token_max_length=512,
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
