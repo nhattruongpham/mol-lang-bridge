@@ -1,8 +1,8 @@
 import torch
 from transformers import AutoTokenizer
-from dataset_module import get_dataloaders
+from src.dataset_module import get_dataloaders
 import lightning as pl
-from lightning_module import T5MultimodalModel
+from src.lightning_module import T5MultimodalModel
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from argparse import ArgumentParser, Namespace
 from lightning.pytorch.loggers import WandbLogger
@@ -15,7 +15,7 @@ def main(args):
     seed_everything(42)
     device = torch.device('cuda' if args.cuda else 'cpu')
     tokenizer = AutoTokenizer.from_pretrained(args.t5.pretrained_model_name_or_path)
-    tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>']) # Add greek symbol, <boc> is start_of_caption, <eoc> is end_of_caption
+    tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>'])
     
     if args.dataset_name == 'lpm-24':
         args.dataset_name_or_path = 'ndhieunguyen/LPM-24'
@@ -27,11 +27,6 @@ def main(args):
     train_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='train')
     val_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
     
-    if args.dataset_name == 'lpm-24':
-        test_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='validation')
-    elif args.dataset_name == 'chebi-20':
-        test_dataloader = get_dataloaders(args, tokenizer, batch_size=args.batch_size, num_workers=args.num_workers, split='test')
-    
     args.train_data_len = len(train_dataloader) // args.grad_accum
     args.tokenizer = Namespace()
     args.tokenizer.pad_token_id = tokenizer.pad_token_id
@@ -42,20 +37,12 @@ def main(args):
     model.tokenizer = tokenizer
 
     on_best_eval_loss_callback = ModelCheckpoint(
-        dirpath=os.path.join(args.output_folder, "best_eval"),
-        filename='ckpt_eval_loss_{eval_loss/dataloader_idx_0}',
+        dirpath=args.output_folder,
+        filename='ckpt_{eval_loss}',
         save_top_k=3,
         verbose=True,
-        monitor='eval_loss/dataloader_idx_0',
+        monitor='eval_loss',
         mode='min'
-    )
-    on_best_bleu2_callback = ModelCheckpoint(
-        dirpath=os.path.join(args.output_folder, "best_bleu2"),
-        filename='ckpt_bleu2_{bleu2/dataloader_idx_1}',
-        save_top_k=3,
-        verbose=True,
-        monitor='bleu2/dataloader_idx_1',
-        mode='max'
     )
     
     wandb_logger = WandbLogger(log_model=False,
@@ -65,7 +52,7 @@ def main(args):
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     trainer = pl.Trainer(
-        callbacks=[on_best_eval_loss_callback, on_best_bleu2_callback, lr_monitor],
+        callbacks=[on_best_eval_loss_callback, lr_monitor],
         max_epochs=args.epochs,
         accelerator='cuda' if args.cuda else 'cpu',
         devices=args.num_devices,
@@ -73,11 +60,10 @@ def main(args):
         gradient_clip_val=10.0,
         logger=[wandb_logger],
         accumulate_grad_batches=args.grad_accum,
-        deterministic=True,
-        check_val_every_n_epoch=2
+        deterministic=True
     )
 
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=[val_dataloader, test_dataloader])
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -92,8 +78,8 @@ if __name__ == "__main__":
     parser.add_argument('--warmup_ratio', type=float, default=0.01)
     parser.add_argument('--precision', type=str, default='32')
     parser.add_argument('--dataset_name', type=str, default='lpm-24')
-    parser.add_argument('--model_config', type=str, default='src/configs/config_main.yaml')
-    parser.add_argument('--output_folder', type=str, default='ckpt/')
+    parser.add_argument('--model_config', type=str, default='src/configs/config_lpm24_train.yaml')
+    parser.add_argument('--output_folder', type=str, default='weights/')
     
     args = parser.parse_args()
     model_config = yaml.safe_load(open(args.model_config, 'r'))

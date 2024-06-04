@@ -6,13 +6,17 @@ swin:
   embed_dim: 192
   depths: [2,2,18,2]
   num_heads: [6,12,24,48]
-  pretrained_model_path: './swin_transform_focalloss.pth'
+  pretrained_model_path: 'weights/swin_transform_focalloss.pth'
 roberta:
   pretrained_model_name_or_path: 'seyonec/ChemBERTa-zinc-base-v1'
 multimodal:
   n_attention_heads: 8
+  fusion_encoder_layers: [10,11]
+  fusion_decoder_layers: [0,1]
   use_visual_feature: true
+  trainable_visual: false
   use_smiles_feature: true
+  trainable_smiles: false
   use_forget_gate: true
   visual_feature_dim: 1536
   text_feature_dim: 768

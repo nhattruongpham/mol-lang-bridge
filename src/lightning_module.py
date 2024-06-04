@@ -5,7 +5,7 @@ from backbones.vision.swin import SwinTransformer
 import torch
 from torch import optim
 import math
-from translation_metrics import Mol2Text_translation
+from metric_evaluator.translation_metrics import Mol2Text_translation
 import contextlib
 
 evaluator = Mol2Text_translation()
@@ -112,23 +112,15 @@ class T5MultimodalModel(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features = self.__prepare_inputs(batch)
-        
         loss, _ = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
-        
         self.log("train_loss", loss, prog_bar=True, logger=True)
         
         return loss
     
-    def validation_step(self, batch, batch_idx, dataloader_idx):
+    def validation_step(self, batch, batch_idx):
         input_ids, attention_mask, smiles_attention_mask, labels, image_features, smiles_features = self.__prepare_inputs(batch)
-        if dataloader_idx == 0: # validation set
-            loss, _ = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
-            self.log('eval_loss', loss, prog_bar=True, logger=True)
-        elif dataloader_idx == 1: # test set
-            gt_caption = batch['caption']
-            pred_caption = self.generate_captioning(batch)
-            eval_metrics = evaluator(pred_caption, gt_caption)
-            self.log_dict(eval_metrics)
+        loss, _ = self(input_ids, attention_mask, labels, image_features, smiles_features, smiles_attention_mask)
+        self.log('eval_loss', loss, prog_bar=True, logger=True)
             
         
     

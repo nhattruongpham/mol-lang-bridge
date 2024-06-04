@@ -1,10 +1,14 @@
+src/mim
 outputs/
 src/weights
 my_dataset/
 lightning_logs/
 *.tsv
-biot5_base/*.txt
-biot5_base/*.ipynb
+biot5_base/
+src/metric_evaluator/ckpts
+src/metric_evaluator/models
+login.py
+src/mim_pretraining.py
 .DS_Store
 
 # Byte-compiled / optimized / DLL files

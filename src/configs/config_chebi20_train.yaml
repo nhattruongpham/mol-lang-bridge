@@ -1,19 +1,23 @@
 t5:
-  pretrained_model_name_or_path: 'QizhiPei/biot5-base'
+  pretrained_model_name_or_path: 'QizhiPei/biot5-base-mol2text'
 swin:
   img_size: [224, 224]
   num_classes: 0
   embed_dim: 192
   depths: [2,2,18,2]
   num_heads: [6,12,24,48]
-  pretrained_model_path: './swin_transform_focalloss.pth'
+  pretrained_model_path: 'weights/swin_transform_focalloss.pth'
 roberta:
   pretrained_model_name_or_path: 'seyonec/ChemBERTa-zinc-base-v1'
 multimodal:
   n_attention_heads: 8
+  fusion_encoder_layers: [10,11]
+  fusion_decoder_layers: [0,1]
   use_visual_feature: true
-  use_smiles_feature: false
-  use_forget_gate: false
+  trainable_visual: false
+  use_smiles_feature: true
+  trainable_smiles: false
+  use_forget_gate: true
   visual_feature_dim: 1536
   text_feature_dim: 768
   smiles_feature_dim: 768
