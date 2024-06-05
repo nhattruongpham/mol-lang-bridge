@@ -1,14 +1,11 @@
 import lightning as pl
-from backbones.lang.t5 import T5ForMultimodalConditionalGeneration
+from .backbones.lang.t5 import T5ForMultimodalConditionalGeneration
 from transformers import RobertaModel
-from backbones.vision.swin import SwinTransformer
+from .backbones.vision.swin import SwinTransformer
 import torch
 from torch import optim
 import math
-from metric_evaluator.translation_metrics import Mol2Text_translation
-import contextlib
 
-evaluator = Mol2Text_translation()
 class T5MultimodalModel(pl.LightningModule):
     def __init__(self, args):
         super().__init__()

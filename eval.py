@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from utils import set_nested_attr
+from src.utils import set_nested_attr
 import yaml
 from src.lightning_module import T5MultimodalModel
 from src.dataset_module import get_dataloaders

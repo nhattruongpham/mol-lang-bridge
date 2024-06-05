@@ -6,3 +6,4 @@ rouge-score==0.1.2
 wandb==0.16.5
 timm==0.5.4
 yacs==0.1.8
+rdkit==2023.09.6

@@ -7,7 +7,7 @@ class MultimodalMoleculeCaptioning(Dataset):
     def __init__(self,
                  args,
                  tokenizer,
-                 dataset_name_or_path='ndhieunguyen/LPM-24', 
+                 dataset_name_or_path='duongttr/LPM-24-extend', 
                  split='train',
                  input_max_length=512,
                  output_max_length=512):

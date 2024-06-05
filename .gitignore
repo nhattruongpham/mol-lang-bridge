@@ -6,7 +6,6 @@ lightning_logs/
 *.tsv
 biot5_base/
 src/metric_evaluator/ckpts
-src/metric_evaluator/models
 login.py
 src/mim_pretraining.py
 .DS_Store

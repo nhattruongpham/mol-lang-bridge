@@ -9,7 +9,7 @@ from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch import seed_everything
 import yaml
 import os
-from utils import set_nested_attr
+from src.utils import set_nested_attr
 
 def main(args):
     seed_everything(42)
@@ -18,7 +18,7 @@ def main(args):
     tokenizer.add_tokens(['α', 'β', 'γ', '<boc>', '<eoc>'])
     
     if args.dataset_name == 'lpm-24':
-        args.dataset_name_or_path = 'ndhieunguyen/LPM-24'
+        args.dataset_name_or_path = 'duongttr/LPM-24-extend'
     elif args.dataset_name == 'chebi-20':
         args.dataset_name_or_path = 'duongttr/chebi-20-new'
     else:
