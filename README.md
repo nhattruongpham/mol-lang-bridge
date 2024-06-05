@@ -1,55 +1,85 @@
-# mol-lang-bridge
-Language and Molecules Translation for Scientific Insight and Discovery
+# Mol2Lang-VLM
+The official implementation of paper **"Mol2Lang-VLM: Vision- and Text-Guided Generative Pre-trained Language Models for Advancing Molecule Captioning through Multimodal Fusion"**
 
-## Fine-tuning multimodal BioT5 on LPM-24 dataset
+## Abstract
+> This paper introduces an enhanced method for refining generative pre-trained language models in molecule captioning by utilizing multimodal features to achieve more accurate caption generation. Our approach leverages the encoder and decoder blocks of the Transformer-based architecture by introducing third sub-layers into both of them. Specifically, we insert sub-layers in the encoder that fuse features from SELFIES strings and molecular images, while the decoder fuses features from SMILES strings and their corresponding descriptions. Performance evaluation on the CheBI-20 and L+M-24 benchmark datasets demonstrates the proposed model's superiority, achieving higher accuracy and quality in caption generation compared to existing methods.
+
+## How to use
+
+### 1. Environment preparation
+After cloning the repo, run the following command to install required packages:
 ```zsh
-python src/main.py --epochs 100 --batch_size 8 --cuda --model_config path/to/model/config
+# installing pytorch, recommend vervion 2.1.2 or above
+pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121 
+
+# installing additional packages
+pip install -r requirements.txt
 ```
 
-`path/to/model/config` could be one of these:
-- `src/configs/config_use_s_nofg.yaml`
-- `src/configs/config_use_s_yesfg.yaml`
-- `src/configs/config_use_v_nofg.yaml` (default)
-- `src/configs/config_use_v_yesfg.yaml`
-- `src/configs/config_use_vs_nofg.yaml`
-- `src/configs/config_use_vs_yesfg.yaml`
+### 2. Pretrained models
+We use these pretrained models for fine-tuning:
 
-Explanation:
-- `use_v`: use visual feature, `use_s`: use SMILES feature, `use_vs`: using both.
-- `nofg`: not use forget gate after cross-attention between 2 features. `yesfg`: otherwise.
+- BioT5: [HuggingFace](https://huggingface.co/QizhiPei/biot5-base)
+- SwinOCSR: [Kaggle](https://www.kaggle.com/datasets/gogogogo11/moedel)
+- ChemBERTa: [HuggingFace](https://huggingface.co/seyonec/ChemBERTa-zinc-base-v1)
 
+Except for BioT5 and ChemBERTa which are automatically downloaded when you start training or evaluating, you need to prepare SwinOCSR's checkpoint from the above link (please use `swin_transform_focalloss.pth`), then put it into `weights/`.
 
-## Fine-tuning baseline BioT5 on LPM-24 dataset
-1. Setup environments
+### 3. Benchmark datasets
+- LPM-24: [HuggingFace](https://huggingface.co/datasets/duongttr/LPM-24-extend)
+- CheBI-20: [HuggingFace](https://huggingface.co/datasets/duongttr/chebi-20-new)
+
+Because the datasets are automatically downloaded from HuggingFace, please send access request and login by following command:
 ```zsh
-conda create -n ACLMol python=3.9
-conda activate ACLMol
-python -m pip install -r requirements.txt
+huggingface-cli login --token '<hf_token>'
 ```
 
-2. Login WandB and HuggingFace
+For some reason, we cannot make it public at this time.
+
+### 3. Training model
+
+#### Reconstruct checkpoint on LPM-24 dataset:
+
 ```zsh
-python login.py --hf_token <hf_token> --wandb_key <wandb_key>
+python train.py --epochs 20 --batch_size 8 \
+                --grad_accum 8 --warmup_ratio 0.05 --lr 3e-5 \
+                --dataset_name lpm-24 --model_config src/configs/ config_lpm24_train.yaml \ 
+                --cuda
 ```
 
-3. Train model
+#### Reconstruct checkpoint on CheBI-20 dataset:
 ```zsh
-python biot5_base/main.py --epochs 100 --batch_size 8 --num_workers 4 --cuda --precision '32'
+python train.py --epochs 50 --batch_size 8 \
+                --grad_accum 32 --warmup_ratio 0.04 --lr 1e-3 \
+                --dataset_name chebi-20 --model_config src/configs/ config_chebi20_train.yaml \ 
+                --cuda
 ```
 
-## Pretraining Swin MIM
-1. Download data
-[Download data](https://www.kaggle.com/datasets/duongtran1909/zinc20-1m) from Kaggle
+### 4. Evaluating model
+#### Checkpoints
+| Checkpoints on dataset| Download link |
+|---|---|
+|LPM-24|[OneDrive](https://1drv.ms/f/c/fa72f5f3c0e55162/Eu0ZV-wkkcJGuvdqKEH4xBcB5dOg_xoIWe7-aK-GTwWa_g?e=00RVcf)|
+|CheBI-20|[OneDrive](https://1drv.ms/f/c/fa72f5f3c0e55162/Eu0ZV-wkkcJGuvdqKEH4xBcB5dOg_xoIWe7-aK-GTwWa_g?e=00RVcf)|
 
-2. Train model
+#### Evaluate on LPM-24
 ```zsh
-python src/mim_pretraining.py --model_config src/config/swin_config.yaml \
-                              --train_data_path path/to/train_data_folder \
-                              --valid_data_path path/to/valid_data_folder \
-                              --epochs 100 \
-                              --batch_size 196 \
-                              --num_workers 8  \
-                              --cuda \
-                              --precision '32' \
-                              --num_devices 1
+!python eval.py --dataset_name lpm-24 \
+                --model_config src/configs/config_lpm24_train.yaml \
+                --checkpoint_path path/to/ckpt \
+                --cuda
+```
+
+#### Evaluate on CheBI-20
+```zsh
+!python eval.py --dataset_name chebi-20 
+                --model_config src/configs/config_chebi20_train.yaml \
+                --checkpoint_path path/to/ckpt \
+                --cuda
+```
+
+## Citation
+If you are interested, please cite to:
+```
+
 ```
