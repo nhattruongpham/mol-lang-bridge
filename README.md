@@ -43,7 +43,7 @@ For some reason, we cannot make it public at this time.
 ```zsh
 python train.py --epochs 20 --batch_size 8 \
                 --grad_accum 8 --warmup_ratio 0.05 --lr 3e-5 \
-                --dataset_name lpm-24 --model_config src/configs/ config_lpm24_train.yaml \ 
+                --dataset_name lpm-24 --model_config src/configs/config_lpm24_train.yaml \ 
                 --cuda
 ```
 
@@ -51,7 +51,7 @@ python train.py --epochs 20 --batch_size 8 \
 ```zsh
 python train.py --epochs 50 --batch_size 8 \
                 --grad_accum 32 --warmup_ratio 0.04 --lr 1e-3 \
-                --dataset_name chebi-20 --model_config src/configs/ config_chebi20_train.yaml \ 
+                --dataset_name chebi-20 --model_config src/configs/config_chebi20_train.yaml \ 
                 --cuda
 ```
 
