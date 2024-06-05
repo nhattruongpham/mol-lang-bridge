@@ -64,18 +64,18 @@ python train.py --epochs 50 --batch_size 8 \
 
 #### Evaluate on LPM-24
 ```zsh
-!python eval.py --dataset_name lpm-24 \
-                --model_config src/configs/config_lpm24_train.yaml \
-                --checkpoint_path path/to/ckpt \
-                --cuda
+python eval.py --dataset_name lpm-24 \
+               --model_config src/configs/config_lpm24_train.yaml \
+               --checkpoint_path path/to/ckpt \
+               --cuda
 ```
 
 #### Evaluate on CheBI-20
 ```zsh
-!python eval.py --dataset_name chebi-20 
-                --model_config src/configs/config_chebi20_train.yaml \
-                --checkpoint_path path/to/ckpt \
-                --cuda
+python eval.py --dataset_name chebi-20 
+               --model_config src/configs/config_chebi20_train.yaml \
+               --checkpoint_path path/to/ckpt \
+               --cuda
 ```
 
 ## Citation
