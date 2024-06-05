@@ -126,9 +126,9 @@ def main():
         with open(args.outputdir, "a") as f:
             for i, x in enumerate(outputs):
                 f.write(
-                    all_caption[i]
+                    caption[i]
                     + "\t"
-                    + all_smiles[i]
+                    + smiles[i]
                     + "\t"
                     + sf.decoder(x.replace("<pad>", "").replace("</s>", ""))
                     + "\n"
