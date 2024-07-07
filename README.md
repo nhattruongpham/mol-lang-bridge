@@ -2,13 +2,18 @@
 
 <!-- ![tgmdlm](pics/tgmdlm.png) -->
 <p align="center">
-        📝 <a href="">Paper</a>｜🤗 <a href="">Demo</a> | 🚩<a href="">Checkpoints</a>
+        📝 <a href="https://openreview.net/pdf?id=j9q7lurl7T">Paper</a>｜🤗 <a href="https://huggingface.co/spaces/ndhieunguyen/Lang2mol-Diff">Demo</a> | 🚩<a href="https://1drv.ms/u/c/9709b85687cc4037/EYFA2lXGhrBKgASd-BZHXhQByey4In_YTlGY0c2VFJF1Ng?e=akcE7b">Checkpoints</a>
 </p>
 
 This repository is the official implementation of [`Lang2Mol-Diff`: A Diffusion-Based Generative Model for Language-to-Molecule Translation Leveraging SELFIES Molecular String Representation](https://github.com/nhattruongpham/mol-lang-bridge/)
 
+## Abstract
+> De novo molecule generation from textual descriptions presents a significant challenge due to potential issues with molecule validity using SMILES representation and the limitations inherent to autoregressive models. This work proposes a diffusion-based language-to-molecule generative model (Lang2Mol-Diff) using SELFIES representation, which addresses these concerns by leveraging the strengths of two state-of-the-art molecular generative models: BioT5 and TGM-DLM. Specifically, Lang2Mol-Diff employs BioT5 to tokenize the SELFIES representation, circumventing the validity issues associated with SMILES strings, while incorporating a text diffusion mechanism in TGM-DLM to overcome the limitations of autoregressive models in this domain. Performance evaluation on the L+M-24 benchmark dataset demonstrates that Lang2Mol-Diff outperforms all state-of-the-art methods for molecule generation in terms of validity.
+
+
 ## News
-- 2024.6.1: Submitted paper at [Language + Molecules @ ACL 2024 Workshop](https://language-plus-molecules.github.io/)
+- 2024.7.07: Paper was accepted as a poster presentation in [OpenReview](https://openreview.net/forum?id=j9q7lurl7T)
+- 2024.6.01: Submitted paper at [Language + Molecules @ ACL 2024 Workshop](https://language-plus-molecules.github.io/)
 
 ## Dataset
 The [L+M-24-extra dataset's](https://huggingface.co/datasets/language-plus-molecules/LPM-24_train-extra) `split_train` was employed to train the model while the [L+M-24 dataset's](https://huggingface.co/datasets/language-plus-molecules/LPM-24_train) `split_val` was employed to evaluate the model. Details regarding the data preprocessing methodology can be found in the accompanying paper. This process was utilized to construct a Huggingface dataset which contains 2 splits: `train` and `validation`. Each split has the following columns: `id`, `smiles`, `selfies`, and `caption`.
