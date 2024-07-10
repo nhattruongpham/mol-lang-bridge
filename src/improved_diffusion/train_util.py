@@ -275,7 +275,10 @@ class TrainLoop:
             # print('----DEBUG-----',self.step,self.log_interval)
             if self.step % self.log_interval == 0 and self.rank == 0:
                 print("rank0: ", self.step, loss.item())
-                wandb.log({"loss": loss.item()})
+                try:
+                    wandb.log({"loss": loss.item()})
+                except:
+                    pass
             # log_loss_dict(
             #     self.diffusion, t, {k: v * weights for k, v in losses.items()}
             # )

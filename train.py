@@ -20,12 +20,13 @@ import torch.multiprocessing as mp
 def main_worker(rank, world_size):
     args = create_argparser().parse_args()
     set_seed(42)
-
-    wandb.login(key=args.wandb_token)
-    wandb.init(
-        project="ACL_Lang2Mol",
-        config=args.__dict__,
-    )
+    
+    if args.wandb_token != "":
+        wandb.login(key=args.wandb_token)
+        wandb.init(
+            project="ACL_Lang2Mol",
+            config=args.__dict__,
+        )
 
     dist_util.setup_dist(rank, world_size)
     tokenizer = Tokenizer()

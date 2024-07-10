@@ -27,7 +27,6 @@ conda activate molecule
 ## Training
 ```
 python3 train.py \
-        --wandb_token <WandB token> \
         --dataset_name <huggingface dataset> \
         --batch_size <batch size> \
         --lr_anneal_steps <total training steps>
