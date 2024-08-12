@@ -2,7 +2,7 @@
 
 <!-- ![tgmdlm](pics/tgmdlm.png) -->
 <p align="center">
-        📝 <a href="https://openreview.net/pdf?id=j9q7lurl7T">Paper</a>｜🤗 <a href="https://huggingface.co/spaces/ndhieunguyen/Lang2mol-Diff">Demo</a> | 🚩<a href="https://1drv.ms/u/c/9709b85687cc4037/EYFA2lXGhrBKgASd-BZHXhQByey4In_YTlGY0c2VFJF1Ng?e=akcE7b">Checkpoints</a>
+        📝 <a href="https://aclanthology.org/2024.langmol-1.15/">Paper</a>｜🤗 <a href="https://huggingface.co/spaces/ndhieunguyen/Lang2mol-Diff">Demo</a> | 🚩<a href="https://1drv.ms/u/c/9709b85687cc4037/EYFA2lXGhrBKgASd-BZHXhQByey4In_YTlGY0c2VFJF1Ng?e=akcE7b">Checkpoints</a>
 </p>
 
 This repository is the official implementation of [`Lang2Mol-Diff`: A Diffusion-Based Generative Model for Language-to-Molecule Translation Leveraging SELFIES Molecular String Representation](https://github.com/nhattruongpham/mol-lang-bridge/)
