@@ -50,4 +50,25 @@ This code is based on https://github.com/CRIPAC-DIG/tgm-dlm/
 ## Citation
 If you find it useful, please cite:
 ```
+@inproceedings{nguyen-etal-2024-lang2mol,
+    title = "{L}ang2{M}ol-Diff: A Diffusion-Based Generative Model for Language-to-Molecule Translation Leveraging {SELFIES} Representation",
+    author = "Nguyen, Nguyen  and
+      Pham, Nhat Truong  and
+      Tran, Duong  and
+      Manavalan, Balachandran",
+    editor = "Edwards, Carl  and
+      Wang, Qingyun  and
+      Li, Manling  and
+      Zhao, Lawrence  and
+      Hope, Tom  and
+      Ji, Heng",
+    booktitle = "Proceedings of the 1st Workshop on Language + Molecules (L+M 2024)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.langmol-1.15",
+    pages = "128--134",
+    abstract = "Generating de novo molecules from textual descriptions is challenging due to potential issues with molecule validity in SMILES representation and limitations of autoregressive models. This work introduces Lang2Mol-Diff, a diffusion-based language-to-molecule generative model using the SELFIES representation. Specifically, Lang2Mol-Diff leverages the strengths of two state-of-the-art molecular generative models: BioT5 and TGM-DLM. By employing BioT5 to tokenize the SELFIES representation, Lang2Mol-Diff addresses the validity issues associated with SMILES strings. Additionally, it incorporates a text diffusion mechanism from TGM-DLM to overcome the limitations of autoregressive models in this domain. To the best of our knowledge, this is the first study to leverage the diffusion mechanism for text-based de novo molecule generation using the SELFIES molecular string representation. Performance evaluation on the L+M-24 benchmark dataset shows that Lang2Mol-Diff outperforms all existing methods for molecule generation in terms of validity. Our code and pre-processed data are available at https://github.com/nhattruongpham/mol-lang-bridge/tree/lang2mol/.",
+}
 ```
